@@ -6,9 +6,9 @@
 - [x] 1.3 Setup Virtual Environment Python dan instalasi *dependencies* awal (FastAPI, Uvicorn, Celery, Redis).
 
 ## Phase 2: Refactoring & Google API Integration
-- [ ] 2.1 Refactor `mailer.py` yang sudah ada agar lebih modular dan bisa dipanggil dari FastAPI/Celery.
-- [ ] 2.2 Buat service/fungsi baru untuk **Google Drive API**: Bisa membaca isi dari "Link Folder Drive" dan mencari nama file.
-- [ ] 2.3 Buat fungsi untuk mengunduh (download) file dari Drive secara *temporary* berdasarkan nama yang cocok dengan CSV.
+- [x] 2.1 Refactor `mailer.py` yang sudah ada agar lebih modular dan bisa dipanggil dari FastAPI/Celery.
+- [x] 2.2 Buat service/fungsi baru untuk **Google Drive API**: Bisa membaca isi dari "Link Folder Drive" dan mencari nama file.
+- [x] 2.3 Buat fungsi untuk mengunduh (download) file dari Drive secara *temporary* berdasarkan nama yang cocok dengan CSV.
 
 ## Phase 3: Background Worker (Celery) & API Endpoints
 - [ ] 3.1 Setup konfigurasi Celery untuk terkoneksi ke Redis.

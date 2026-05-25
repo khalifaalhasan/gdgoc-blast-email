@@ -19,7 +19,10 @@ SENDER_EMAIL = "dscunsri@gmail.com"
 EMAIL_SUBJECT = "E-Certificate: Gamejam 2026 Participation"
 
 # --- GOOGLE API ---
-SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.send',
+    'https://www.googleapis.com/auth/drive.readonly'
+]
 
 
 # --- SOCIAL MEDIA LINKS ---
