@@ -15,8 +15,8 @@ CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
 
 # --- EMAIL CONFIGURATION ---
 SENDER_NAME = "GDG on Campus UNSRI"
-SENDER_EMAIL = "dscunsri@gmail.com"  # Pastikan sama dengan akun auth
-EMAIL_SUBJECT = "[Certificate of Appreciation] Secure Computer User"
+SENDER_EMAIL = "dscunsri@gmail.com"  
+EMAIL_SUBJECT = "E-Certificate: Gamejam 2026 Participation"
 
 # --- GOOGLE API ---
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
@@ -28,12 +28,11 @@ LINK_WEBSITE = "https://linktr.ee/gdgunsri"
 LINK_LINKEDIN = "https://www.linkedin.com/company/gdgunsri/"
 LINK_TIKTOK = "https://www.tiktok.com/@gdgunsri"
 
-URL_HEADER = "https://www.khalifaalhasan.my.id/gdg/header.png"
-URL_ICON = "https://www.khalifaalhasan.my.id/gdg/icon.png"
+URL_HEADER = "https://khalifaalhasan.vercel.app/gdg/headergdgijo2.jpg"
+URL_ICON = "https://khalifaalhasan.vercel.app/gdg/icongdgijo2.png"
 
 # --- FOOTER ASSETS ---
-# Pastikan file ini ada di folder assets/
 LOGO_GDG = os.path.join(ASSETS_DIR, 'icon.png') 
-ICON_DOWNLOAD = os.path.join(ASSETS_DIR, 'icon.png') # Opsional, hapus di HTML jika tidak dipakai
-ICON_DRIVE = os.path.join(ASSETS_DIR, 'icon.png')       # Opsional
-ICON_PHOTOS = os.path.join(ASSETS_DIR, 'icon.png')     # Opsional
+ICON_DOWNLOAD = os.path.join(ASSETS_DIR, 'icon.png') 
+ICON_DRIVE = os.path.join(ASSETS_DIR, 'icon.png')       
+ICON_PHOTOS = os.path.join(ASSETS_DIR, 'icon.png')     

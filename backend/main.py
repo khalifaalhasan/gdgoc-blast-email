@@ -63,7 +63,7 @@ def main():
                     continue
 
                 # 4. Siapkan Email
-                html_body = template.get_certificate_email_body(nama, role)
+                html_body = template.get_certificate_email_body(nama, role, certificate_link=pdf_path)
                 message = mailer.create_message(
                     to_email=email, 
                     subject=config.EMAIL_SUBJECT, 
