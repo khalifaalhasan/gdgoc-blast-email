@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 
-from src import google_auth
+from app.infrastructure import google_auth
 
 def get_gmail_service():
     """Wrapper untuk memanggil service dari google_auth"""
