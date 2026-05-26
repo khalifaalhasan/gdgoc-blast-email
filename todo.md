@@ -11,17 +11,17 @@
 - [x] 2.3 Buat fungsi untuk mengunduh (download) file dari Drive secara *temporary* berdasarkan nama yang cocok dengan CSV.
 
 ## Phase 3: Background Worker (Celery) & API Endpoints
-- [ ] 3.1 Setup konfigurasi Celery untuk terkoneksi ke Redis.
-- [ ] 3.2 Buat Celery Task `blast_email_task`: menerima data (CSV data, Drive link, Template body/subject) lalu menjalankan proses loop pengiriman email di *background*.
-- [ ] 3.3 Buat API Endpoint `POST /api/campaign/start` untuk menerima file CSV, form template, dan men-*trigger* Celery Task.
-- [ ] 3.4 Buat API Endpoint `GET /api/campaign/status/{task_id}` untuk memantau *progress* (berapa sukses, berapa gagal).
+- [x] 3.1 Setup konfigurasi Celery untuk terkoneksi ke Redis.
+- [x] 3.2 Buat Celery Task `blast_email_task`: menerima data (CSV data, Drive link, Template body/subject) lalu menjalankan proses loop pengiriman email di *background*.
+- [x] 3.3 Buat API Endpoint `POST /api/campaign/start` untuk menerima file CSV, form template, dan men-*trigger* Celery Task.
+- [x] 3.4 Buat API Endpoint `GET /api/campaign/status/{task_id}` untuk memantau *progress* (berapa sukses, berapa gagal).
 
 ## Phase 4: Frontend Development (Next.js + UI Premium)
-- [ ] 4.1 Inisialisasi Next.js app (Tailwind CSS, modern typography).
-- [ ] 4.2 Buat komponen Layout & Sidebar untuk Dashboard.
-- [ ] 4.3 Buat halaman **Create Campaign**: Form input untuk Subject, Body (Template Editor), input Link Drive, dan Upload CSV.
-- [ ] 4.4 Integrasi form Frontend ke Endpoint `POST /api/campaign/start`.
-- [ ] 4.5 Buat komponen **Progress Tracker**: Progress bar *real-time* yang menarik (memanggil endpoint status secara periodik) dan menampilkan log/error.
+- [x] 4.1 Inisialisasi Next.js app (Tailwind CSS, modern typography).
+- [x] 4.2 Buat komponen Layout & Sidebar untuk Dashboard.
+- [x] 4.3 Buat halaman **Create Campaign**: Form input untuk Subject, Body (Template Editor), input Link Drive, dan Upload CSV.
+- [x] 4.4 Integrasi form Frontend ke Endpoint `POST /api/campaign/start`.
+- [x] 4.5 Buat komponen **Progress Tracker**: Progress bar *real-time* yang menarik (memanggil endpoint status secara periodik) dan menampilkan log/error.
 
 ## Phase 5: Finalization & Deployment Prep
 - [ ] 5.1 End-to-end Testing (Simulasi upload CSV dan kirim ke email tester).

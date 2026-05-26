@@ -7,3 +7,13 @@ services:
     ports:
       - "6379:6379"
     restart: always
+
+  # Redis GUI Console (Bisa diakses dari browser)
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: blast_email_redis_console
+    ports:
+      - "8001:5540"
+    restart: always
+    depends_on:
+      - redis

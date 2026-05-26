@@ -1,0 +1,86 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+		"name": "GDGoC Blast Email API",
+		"description": "Koleksi Postman untuk testing API Bulk Email GDGoC.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Start Campaign (Blast)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"description": "Upload file recipients.csv di sini",
+							"type": "file",
+							"src": []
+						},
+						{
+							"key": "drive_links_json",
+							"value": "{\"Participant\": \"https://drive.google.com/drive/folders/xxxx\", \"Committee\": \"https://drive.google.com/drive/folders/yyyy\"}",
+							"description": "Bisa json mapping atau langsung 1 url utuh",
+							"type": "text"
+						},
+						{
+							"key": "subject_template",
+							"value": "Sertifikat GDGoC untuk {{nama}}",
+							"type": "text"
+						},
+						{
+							"key": "body_template",
+							"value": "<h1>Halo {{nama}}!</h1><p>Terima kasih atas partisipasi Anda sebagai {{role}}.</p>",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/campaign/start",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"campaign",
+						"start"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Get Campaign Status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/api/campaign/status/:task_id",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"campaign",
+						"status",
+						":task_id"
+					],
+					"variable": [
+						{
+							"key": "task_id",
+							"value": "ganti_dengan_task_id_dari_response_sebelumnya"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
