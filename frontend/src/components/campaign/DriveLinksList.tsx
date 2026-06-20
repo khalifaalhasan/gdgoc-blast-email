@@ -1,4 +1,3 @@
-import React from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 interface DriveLinkEntry {
@@ -12,94 +11,78 @@ interface DriveLinksProps {
 }
 
 export function DriveLinksList({ links, onChange }: DriveLinksProps) {
-  const handleAddLink = () => {
-    onChange([...links, { role: "", url: "" }]);
-  };
-
-  const handleRemoveLink = (index: number) => {
-    const newList = [...links];
-    newList.splice(index, 1);
-    onChange(newList);
-  };
-
   const handleLinkChange = (index: number, field: keyof DriveLinkEntry, value: string) => {
     const newList = [...links];
     newList[index][field] = value;
     onChange(newList);
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "10px 14px", border: "1px solid #e2e8f0", borderRadius: 10,
-    fontSize: 14, outline: "none", color: "#0f172a", background: "transparent",
-    transition: "all 0.2s ease-in-out",
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8,
-    textTransform: "uppercase", letterSpacing: "0.05em"
+  const removeRow = (index: number) => {
+    const newList = [...links];
+    newList.splice(index, 1);
+    onChange(newList);
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <label style={{ ...labelStyle, marginBottom: 0 }}>Folder Google Drive (Per Role)</label>
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-between items-center bg-muted/50 p-4 rounded-xl border border-border">
+        <div>
+          <h2 className="text-sm font-bold text-card-foreground">Mapping Role ke Google Drive</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Role di CSV akan mendapat link Drive yang sesuai.</p>
+        </div>
         <button
           type="button"
-          onClick={handleAddLink}
-          style={{
-            fontSize: 13, display: "flex", alignItems: "center", gap: 6, color: "#2563eb",
-            fontWeight: 600, background: "#eff6ff", padding: "6px 12px", borderRadius: 20,
-            border: "none", cursor: "pointer", transition: "background 0.2s"
+          onClick={() => {
+            const newLinks = [...links, { role: "", url: "" }];
+            onChange(newLinks);
           }}
-          onMouseEnter={(e) => e.currentTarget.style.background = "#dbeafe"}
-          onMouseLeave={(e) => e.currentTarget.style.background = "#eff6ff"}
+          className="text-xs font-semibold px-4 py-2 rounded-full border border-input bg-background text-foreground cursor-pointer flex items-center gap-1.5 hover:bg-muted transition-colors shadow-sm"
         >
-          <Plus size={14} strokeWidth={3} /> Tambah Role
+          <Plus size={14} /> Tambah Role
         </button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {links.map((item, idx) => (
-          <div key={idx} style={{
-            display: "flex", gap: 12, alignItems: "center", background: "#fff",
-            border: "1px solid #f1f5f9", padding: "10px 12px", borderRadius: 12,
-            boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
-          }}>
-            <div style={{ width: "35%" }}>
+      <div className="flex flex-col gap-3">
+        {links.map((link, i) => (
+          <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-card p-4 rounded-xl border border-border shadow-sm group transition-colors">
+            <div className="flex-1 flex flex-col gap-1.5 relative">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide px-1">Role (Sesuai CSV)</label>
               <input
-                type="text"
-                value={item.role}
-                onChange={(e) => handleLinkChange(idx, "role", e.target.value)}
-                placeholder="Nama Role (ex: Participant)"
-                style={inputStyle}
-                onFocus={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.1)"; }}
-                onBlur={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}
+                placeholder="Contoh: Peserta"
+                value={link.role}
+                onChange={(e) => handleLinkChange(i, "role", e.target.value)}
+                className="w-full p-2.5 bg-background border border-input rounded-lg text-[13px] text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all"
               />
             </div>
-            <div style={{ flex: 1 }}>
+            
+            <div className="hidden sm:block text-muted-foreground mt-6 px-1">
+              {/* Panah dekoratif */}
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"></path>
+                <path d="m12 5 7 7-7 7"></path>
+              </svg>
+            </div>
+            
+            <div className="flex-[2] flex flex-col gap-1.5 relative">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide px-1">Link Folder Google Drive</label>
               <input
-                type="text"
-                value={item.url}
-                onChange={(e) => handleLinkChange(idx, "url", e.target.value)}
-                placeholder="Link Folder Google Drive"
-                style={inputStyle}
-                onFocus={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.1)"; }}
-                onBlur={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}
+                placeholder="https://drive.google.com/drive/folders/..."
+                value={link.url}
+                onChange={(e) => handleLinkChange(i, "url", e.target.value)}
+                className="w-full p-2.5 bg-background border border-input rounded-lg text-[13px] text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all"
               />
             </div>
-            <button
-              type="button"
-              onClick={() => handleRemoveLink(idx)}
-              style={{
-                color: "#94a3b8", background: "none", border: "none", cursor: "pointer",
-                padding: 10, borderRadius: 8, transition: "all 0.2s"
-              }}
-              title="Hapus baris"
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.color = "#ef4444"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}
-            >
-              <Trash2 size={18} />
-            </button>
+
+            <div className="sm:mt-6 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => removeRow(i)}
+                className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-destructive/20"
+                title="Hapus baris ini"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

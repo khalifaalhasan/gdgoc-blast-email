@@ -1,19 +1,14 @@
-import { useState, useEffect } from 'react';
-import localforage from 'localforage';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Papa from 'papaparse';
-
-// Inisialisasi localforage
-localforage.config({
-  name: 'gdgoc-blast-email',
-  storeName: 'campaign_drafts'
-});
 
 interface DriveLinkEntry {
   role: string;
   url: string;
 }
 
-export function useFormPersist() {
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+
+export function useFormPersist(campaignId: string) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // States
@@ -32,9 +27,20 @@ export function useFormPersist() {
   ]);
 
   const [file, setFile] = useState<File | null>(null);
+  const [suratFile, setSuratFile] = useState<File | null>(null);
   const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: any[] } | null>(null);
+  const [campaignType, setCampaignType] = useState<'sertifikat' | 'surat'>(() => {
+    return (localStorage.getItem(`campaignType_${campaignId}`) as 'sertifikat' | 'surat') || 'sertifikat';
+  });
 
-  // Fungsi helper untuk nge-parse ulang file yang diambil dari IndexedDB
+  useEffect(() => {
+    if (campaignId) {
+      localStorage.setItem(`campaignType_${campaignId}`, campaignType);
+    }
+  }, [campaignType, campaignId]);
+
+  const initialLoadRef = useRef(false);
+
   const handleParse = (selectedFile: File) => {
     Papa.parse(selectedFile, {
       header: true,
@@ -50,63 +56,85 @@ export function useFormPersist() {
     });
   };
 
-  // Muat data dari IndexedDB saat pertama kali load
   useEffect(() => {
     async function loadData() {
+      setIsLoaded(false);
       try {
-        const savedSubject = await localforage.getItem<string>('subject');
-        const savedTheme = await localforage.getItem<string>('themeColor');
-        const savedBody = await localforage.getItem<string>('body');
-        const savedDriveLinks = await localforage.getItem<DriveLinkEntry[]>('driveLinksList');
-        const savedFile = await localforage.getItem<File>('csvFile');
-
-        if (savedSubject) setSubject(savedSubject);
-        if (savedTheme) setThemeColor(savedTheme);
-        if (savedBody) setBody(savedBody);
-        if (savedDriveLinks) setDriveLinksList(savedDriveLinks);
-        
-        if (savedFile) {
-          setFile(savedFile);
-          handleParse(savedFile);
+        const res = await fetch(`${API_URL}/campaigns/${campaignId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.subject_template) setSubject(data.subject_template);
+          if (data.theme_color) setThemeColor(data.theme_color);
+          if (data.body_template) setBody(data.body_template);
+          
+          if (data.drive_links) {
+            const links = Object.keys(data.drive_links).map(role => ({
+              role,
+              url: data.drive_links[role]
+            }));
+            if (links.length > 0) {
+              setDriveLinksList(links);
+            }
+          }
+          
+          if (data.csv_data && data.csv_data.length > 0) {
+            const headers = Object.keys(data.csv_data[0] as object);
+            setCsvPreview({ headers, rows: data.csv_data });
+          } else {
+            setCsvPreview(null);
+          }
         }
       } catch (err) {
-        console.error("Gagal memuat data dari IndexedDB:", err);
+        console.error("Gagal memuat data dari API:", err);
       } finally {
         setIsLoaded(true);
+        initialLoadRef.current = true;
       }
     }
-    loadData();
-  }, []);
+    if (campaignId) {
+      loadData();
+    }
+  }, [campaignId]);
 
-  // Simpan text/links setiap kali berubah
-  useEffect(() => {
-    if (!isLoaded) return;
-    localforage.setItem('subject', subject);
-  }, [subject, isLoaded]);
+  // Autosave
+  const saveToApi = useCallback(async () => {
+    if (!campaignId) return;
+    
+    const drive_links: Record<string, string> = {};
+    driveLinksList.forEach(l => {
+      if (l.role.trim() && l.url.trim()) {
+        drive_links[l.role.trim()] = l.url.trim();
+      }
+    });
+
+    try {
+      await fetch(`${API_URL}/campaigns/${campaignId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject_template: subject,
+          body_template: body,
+          theme_color: themeColor,
+          drive_links,
+          csv_data: csvPreview ? csvPreview.rows : []
+        })
+      });
+    } catch (e) {
+      console.error("Autosave failed", e);
+    }
+  }, [campaignId, subject, body, themeColor, driveLinksList, csvPreview]);
 
   useEffect(() => {
-    if (!isLoaded) return;
-    localforage.setItem('themeColor', themeColor);
-  }, [themeColor, isLoaded]);
+    if (!isLoaded || !initialLoadRef.current) return;
+    const timeoutId = setTimeout(() => {
+      saveToApi();
+    }, 1500);
+    return () => clearTimeout(timeoutId);
+  }, [subject, themeColor, body, driveLinksList, csvPreview, isLoaded, saveToApi]);
 
   useEffect(() => {
-    if (!isLoaded) return;
-    localforage.setItem('body', body);
-  }, [body, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localforage.setItem('driveLinksList', driveLinksList);
-  }, [driveLinksList, isLoaded]);
-
-  // Simpan file asli ke IndexedDB
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (file) {
-      localforage.setItem('csvFile', file);
-    } else {
-      localforage.removeItem('csvFile');
-      setCsvPreview(null);
+    if (file && isLoaded) {
+      handleParse(file);
     }
   }, [file, isLoaded]);
 
@@ -117,6 +145,8 @@ export function useFormPersist() {
     body, setBody,
     driveLinksList, setDriveLinksList,
     file, setFile,
-    csvPreview, setCsvPreview
+    suratFile, setSuratFile,
+    csvPreview, setCsvPreview,
+    campaignType, setCampaignType
   };
 }

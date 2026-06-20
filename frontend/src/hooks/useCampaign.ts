@@ -39,7 +39,7 @@ export function useCampaign() {
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    if (taskId && status?.status !== "Selesai" && status?.status !== "Gagal") {
+    if (taskId && status?.status !== "Selesai" && status?.status !== "Gagal" && status?.state !== "FAILURE") {
       interval = setInterval(async () => {
         const isFinished = await checkStatus();
         if (isFinished) clearInterval(interval);

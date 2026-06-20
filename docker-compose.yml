@@ -17,3 +17,19 @@ services:
     restart: always
     depends_on:
       - redis
+
+  db:
+    image: postgres:15-alpine
+    container_name: blast_email_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: blast_email
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

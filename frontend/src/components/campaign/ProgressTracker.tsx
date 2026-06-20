@@ -1,106 +1,130 @@
-import { FileText, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import type { CampaignStatus } from "../../types/campaign";
 
 interface ProgressTrackerProps {
   taskId: string | null;
   status: CampaignStatus | null;
   onReset: () => void;
-  onRetryFailed: (failedRows: any[]) => void;
+  onReviewResults?: (failedRows: any[], successfulRows: any[]) => void;
 }
 
-export function ProgressTracker({ taskId, status, onReset, onRetryFailed }: ProgressTrackerProps) {
+export function ProgressTracker({ taskId, status, onReset, onReviewResults }: ProgressTrackerProps) {
+  const percentage = status && status.total > 0 
+    ? Math.round(((status.success + status.fail) / status.total) * 100) 
+    : 0;
+
+  const hasErrors = status && (status.fail > 0 || status.state === "FAILURE");
+
   return (
-    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 24, boxShadow: "0 1px 2px rgb(0 0 0 / 0.05)", display: "flex", flexDirection: "column", minHeight: 400 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
-        <FileText size={20} color="#2563eb" />
+    <div className="bg-card text-card-foreground rounded-3xl border border-border p-8 shadow-xl flex flex-col min-h-[400px] transition-colors">
+      <h2 className="text-xl font-bold flex items-center gap-2 mb-6">
+        <FileText className="w-5 h-5 text-primary" />
         Progress Tracker
       </h2>
 
       {!taskId && !status && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#94a3b8" }}>
-          <div className="animate-spin" style={{ width: 64, height: 64, border: "4px solid #f1f5f9", borderTopColor: "#cbd5e1", borderRadius: "50%", marginBottom: 16 }} />
-          <p style={{ fontSize: 14 }}>Menunggu Campaign...</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+          <div className="w-16 h-16 border-4 border-border border-t-primary rounded-full animate-spin mb-4" />
+          <p className="text-sm font-medium">Menunggu Campaign...</p>
         </div>
       )}
 
       {status && (
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 500, color: "#334155" }}>Status</span>
-              <span style={{
-                fontSize: 12, fontWeight: 700, padding: "4px 8px", borderRadius: 6,
-                background: status.status === "Selesai" ? "#dcfce7" : status.status === "Gagal" ? "#fee2e2" : "#dbeafe",
-                color: status.status === "Selesai" ? "#15803d" : status.status === "Gagal" ? "#b91c1c" : "#1d4ed8",
-              }}>
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-muted-foreground">Status</span>
+              <span className={`
+                text-xs font-bold px-2.5 py-1 rounded-md
+                ${status.status === "Selesai" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : 
+                  status.status === "Gagal" ? "bg-destructive/10 text-destructive" : 
+                  "bg-primary/10 text-primary"}
+              `}>
                 {status.status || status.state}
               </span>
             </div>
 
             {/* Progress Bar */}
             {status.total > 0 && (
-              <div style={{ width: "100%", background: "#f1f5f9", borderRadius: 10, height: 10, marginTop: 16, overflow: "hidden" }}>
-                <div style={{ background: "#2563eb", height: 10, borderRadius: 10, transition: "width 500ms ease-out", width: `${((status.success + status.fail) / status.total) * 100}%` }} />
+              <div className="w-full bg-muted rounded-full h-2.5 mt-4 overflow-hidden">
+                <div 
+                  className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out" 
+                  style={{ width: `${percentage}%` }} 
+                />
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 24 }}>
-              <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 12, border: "1px solid #dcfce7" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#15803d", marginBottom: 4 }}>
-                  <CheckCircle2 size={16} />
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>Sukses</span>
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Sukses</span>
                 </div>
-                <p style={{ fontSize: 24, fontWeight: 700, color: "#15803d" }}>{status.success || 0}</p>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{status.success || 0}</p>
               </div>
-              <div style={{ background: "#fef2f2", borderRadius: 8, padding: 12, border: "1px solid #fee2e2" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#b91c1c", marginBottom: 4 }}>
-                  <XCircle size={16} />
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>Gagal</span>
+              <div className="bg-destructive/10 rounded-xl p-4 border border-destructive/20">
+                <div className="flex items-center gap-1.5 text-destructive mb-1">
+                  <XCircle className="w-4 h-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Gagal</span>
                 </div>
-                <p style={{ fontSize: 24, fontWeight: 700, color: "#b91c1c" }}>{status.fail || 0}</p>
+                <p className="text-3xl font-bold text-destructive">{status.fail || 0}</p>
               </div>
             </div>
           </div>
 
           {/* Terminal / Logs */}
-          <div style={{ flex: 1, background: "#0f172a", borderRadius: 8, padding: 16, fontFamily: "monospace", fontSize: 12, overflowY: "auto", color: "#cbd5e1", boxShadow: "inset 0 2px 4px rgb(0 0 0 / 0.2)", minHeight: 150, marginBottom: 16 }}>
+          <div className="flex-1 bg-slate-950 dark:bg-black rounded-xl p-4 font-mono text-xs overflow-y-auto text-slate-300 shadow-inner min-h-[150px] mb-4 border border-slate-800">
             {status.logs && status.logs.length > 0 ? (
               status.logs.map((log: string, idx: number) => (
-                <div key={idx} style={{ marginBottom: 6, wordBreak: "break-word" }}>
-                  <span style={{ color: "#60a5fa", marginRight: 8 }}>{">"}</span>
-                  <span style={{ color: log.includes("❌") ? "#f87171" : log.includes("✅") ? "#4ade80" : undefined }}>{log}</span>
+                <div key={idx} className="mb-1.5 break-words">
+                  <span className="text-primary mr-2">{">"}</span>
+                  <span className={log.includes("❌") ? "text-red-400" : log.includes("✅") ? "text-emerald-400" : ""}>{log}</span>
                 </div>
               ))
             ) : (
-              <span style={{ color: "#475569", fontStyle: "italic" }}>Logs akan muncul di sini...</span>
+              <span className="text-slate-500 italic">Logs akan muncul di sini...</span>
             )}
           </div>
 
           {(status.status === "Selesai" || status.status === "Gagal" || status.state === "FAILURE") && (
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: "auto" }}>
-              <button
-                onClick={onReset}
-                style={{
-                  padding: "8px 16px", borderRadius: 6, border: "1px solid #cbd5e1",
-                  background: "#fff", color: "#475569", fontSize: 13, fontWeight: 600,
-                  cursor: "pointer"
-                }}
-              >
-                Kembali ke Form
-              </button>
+            <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
+              <div className="flex justify-between items-center bg-primary/10 p-4 rounded-xl">
+                <div>
+                  <p className="font-bold text-primary text-lg">Proses Selesai!</p>
+                  <p className="text-sm text-primary/80 font-medium">Semua email telah diproses.</p>
+                </div>
+                {hasErrors ? (
+                  <div className="bg-destructive/10 px-3 py-1.5 rounded-lg border border-destructive/20 text-destructive text-sm font-bold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" /> Ada yang gagal
+                  </div>
+                ) : (
+                  <div className="bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" /> Sukses Semua
+                  </div>
+                )}
+              </div>
               
-              {status.result?.failed_rows && status.result.failed_rows.length > 0 && onRetryFailed && (
+              <div className="flex gap-3 justify-end mt-2">
                 <button
-                  onClick={() => onRetryFailed(status.result!.failed_rows!)}
-                  style={{
-                    padding: "8px 16px", borderRadius: 6, border: "none",
-                    background: "#ef4444", color: "#fff", fontSize: 13, fontWeight: 600,
-                    cursor: "pointer"
-                  }}
+                  onClick={onReset}
+                  className="px-4 py-2 rounded-lg border border-input bg-transparent text-foreground text-sm font-semibold cursor-pointer hover:bg-muted transition-colors"
                 >
-                  Coba Ulang yang Gagal ({status.result.failed_rows.length})
+                  Buat Campaign Baru
                 </button>
-              )}
+                
+                {status.result && (status.result.failed_rows?.length || status.result.successful_rows?.length) ? (
+                  <button
+                    onClick={() => {
+                      const failed = status.result?.failed_rows || [];
+                      const success = status.result?.successful_rows || [];
+                      if (onReviewResults) onReviewResults(failed, success);
+                    }}
+                    className="px-4 py-2 rounded-lg border-none bg-primary text-primary-foreground text-sm font-semibold cursor-pointer hover:opacity-90 transition-colors shadow-sm"
+                  >
+                    Lihat Hasil di Tabel
+                  </button>
+                ) : null}
+              </div>
             </div>
           )}
         </div>

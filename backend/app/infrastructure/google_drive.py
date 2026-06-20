@@ -27,22 +27,47 @@ def find_file_in_drive(service, folder_id, target_name):
     if not target_words:
         return None
 
-    # Query untuk mencari file di dalam folder (menggunakan contains)
-    # Catatan: Drive API tidak support pure case-insensitive contains via API secara presisi,
-    # kita ambil semua file di folder, lalu filter di Python.
-    query = f"'{folder_id}' in parents and trashed = false"
+    # Pilih kata pencarian terpanjang agar filter API efektif
+    longest_word = max(list(target_words), key=len)
     
-    try:
-        results = service.files().list(q=query, fields="nextPageToken, files(id, name)").execute()
-        items = results.get('files', [])
+    # Query untuk mencari file di dalam folder
+    query = f"'{folder_id}' in parents and name contains '{longest_word}' and trashed = false"
+    
+    def fetch_items(q):
+        items_list = []
+        page_token = None
+        while True:
+            try:
+                res = service.files().list(
+                    q=q, 
+                    pageSize=1000,
+                    fields="nextPageToken, files(id, name)",
+                    pageToken=page_token
+                ).execute()
+                items_list.extend(res.get('files', []))
+                page_token = res.get('nextPageToken')
+                if not page_token:
+                    break
+            except Exception as e:
+                print(f"❌ Drive API Error during search: {e}")
+                break
+        return items_list
+
+    items = fetch_items(query)
+    
+    # Jika tidak ketemu di dalam folder spesifik, mungkin ada di subfolder atau link salah.
+    # Kita lakukan pencarian fallback (seluruh drive)
+    if not items:
+        fallback_query = f"name contains '{longest_word}' and trashed = false"
+        items = fetch_items(fallback_query)
         
+    try:
         for item in items:
             filename = item['name'].lower()
             # Pecah nama file jadi kumpulan kata (pisahkan spasi, _, -, dll)
             file_words = set(re.findall(r'[a-z0-9]+', filename))
             
             # Cek apakah SEMUA kata di target ada di dalam file
-            # Ini mencegah "Wahyu" cocok dengan "Wahyuni"
             if target_words.issubset(file_words):
                 return item
         return None

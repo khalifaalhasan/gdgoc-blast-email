@@ -8,6 +8,7 @@ export interface CampaignStatus {
   status: string;
   result?: {
     failed_rows?: any[];
+    successful_rows?: any[];
   };
 }
 

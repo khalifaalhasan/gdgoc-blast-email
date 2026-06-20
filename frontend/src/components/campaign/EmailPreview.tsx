@@ -61,8 +61,8 @@ export function EmailPreview({ subject, body, themeColor }: EmailPreviewProps) {
         {/* Email Content */}
         <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden", boxShadow: "0 1px 3px rgb(0 0 0 / 0.1)" }}>
           {/* Header Banner */}
-          <div style={{ width: "100%", height: 128, background: "#f1f5f9", borderBottom: "1px solid #e2e8f0" }}>
-            <img src={headerSrc} alt="Email Banner" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.src = "/assets/header.png"} />
+          <div style={{ width: "100%", background: "#f1f5f9", borderBottom: "1px solid #e2e8f0" }}>
+            <img src={headerSrc} alt="Email Banner" style={{ width: "100%", height: "auto", display: "block" }} onError={(e) => e.currentTarget.src = "/assets/header.png"} />
           </div>
 
           {/* Body */}

@@ -8,18 +8,18 @@ DOCKER_COMPOSE ?= $(DOCKER)-compose
 
 help:
 	@echo "Perintah Shortcut (Makefile):"
-	@echo "  make redis-up    : Menjalankan Redis server via $(DOCKER)"
-	@echo "  make redis-down  : Mematikan Redis server"
+	@echo "  make infra-up    : Menjalankan Redis & DB via $(DOCKER)"
+	@echo "  make infra-down  : Mematikan Infrastruktur"
 	@echo "  make backend     : Menjalankan API Server (FastAPI)"
 	@echo "  make worker      : Menjalankan Background Worker (Celery)"
 	@echo "  make frontend    : Menjalankan UI Web (Next.js)"
 	@echo "  make dev-backend : Menjalankan FastAPI & Celery bersamaan (Butuh terminal terpisah atau support make -j2)"
 
-# --- INFRASTRUCTURE (REDIS) ---
-redis-up:
-	$(DOCKER_COMPOSE) up -d redis redisinsight
+# --- INFRASTRUCTURE (REDIS & DB) ---
+infra-up:
+	$(DOCKER_COMPOSE) up -d
 
-redis-down:
+infra-down:
 	$(DOCKER_COMPOSE) down
 
 # --- BACKEND ---
@@ -32,7 +32,7 @@ backend:
 worker:
 	cd backend && ./venv/bin/celery -A worker.celery_app worker --loglevel=info
 
-dev-backend: redis-up
+dev-backend: infra-up
 	@echo "Menjalankan Backend & Worker secara paralel..."
 	make -j2 backend worker
 
