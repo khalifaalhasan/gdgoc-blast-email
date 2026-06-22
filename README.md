@@ -170,4 +170,4 @@ Gmail API membatasi pengiriman sekitar ±500 email/hari untuk akun gratis
 ## 👨‍💻 Maintainer
 
 **Backend Division**\
-GDG on Campus Universitas Sriwijaya
+GDG on Campus Universitas Sriwijayaa
