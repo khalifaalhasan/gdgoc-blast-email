@@ -2,7 +2,9 @@ import type { CampaignStartResponse } from "../types/campaign";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
-export async function startCampaign(formData: FormData): Promise<CampaignStartResponse> {
+export async function startCampaign(
+  formData: FormData,
+): Promise<CampaignStartResponse> {
   const res = await fetch(`${API_URL}/campaign/start`, {
     method: "POST",
     body: formData,
@@ -26,3 +28,16 @@ export async function getCampaignStatus(taskId: string) {
 
   return { status: res.status, data };
 }
+
+export async function checkAuthStatus(): Promise<{ valid: boolean; message: string }> {
+  try {
+    const res = await fetch(`${API_URL}/auth/google/status`);
+    if (!res.ok) {
+      return { valid: false, message: "Server error saat cek token." };
+    }
+    return await res.json();
+  } catch (err) {
+    return { valid: false, message: "Gagal terhubung ke server backend." };
+  }
+}
+

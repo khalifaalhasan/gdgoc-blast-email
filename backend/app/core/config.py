@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # --- SYSTEM SETTINGS ---
     REDIS_URL: str = "redis://localhost:6379/0"
     FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_URL: str = "http://localhost:8000"  # Digunakan untuk OAuth redirect URI
 
     class Config:
         env_file = os.path.join(BASE_DIR, '.env')
