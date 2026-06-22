@@ -7,7 +7,7 @@ def get_certificate_email_body(nama, role, certificate_link):
     return f"""
     <html>
     <body style="margin:0; padding:0; background-color:#f4f4f4; font-family: 'Google Sans', Arial, sans-serif;">
-        <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <div style="max-width: 650px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
             
             <img src="{config.URL_HEADER}" style="width: 100%; display: block; pointer-events: none;" alt="GDGoC UNSRI Header">
 

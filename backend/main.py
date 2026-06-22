@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import config
 from app.api.routes.blast import router as blast_router
 from app.api.routes.campaigns import router as campaigns_router
+from app.api.routes.history import router as history_router
+from app.api.routes.auth import router as auth_router
 from app.db.database import engine, Base
 from app.db import models
 
@@ -42,6 +44,8 @@ app.add_middleware(
 # Register routes
 app.include_router(blast_router, prefix="/api", tags=["Blast Email Task"])
 app.include_router(campaigns_router, prefix="/api", tags=["Campaign Data"])
+app.include_router(history_router, prefix="/api", tags=["Email History"])
+app.include_router(auth_router, prefix="/api", tags=["Google Auth"])
 
 if __name__ == "__main__":
     import uvicorn

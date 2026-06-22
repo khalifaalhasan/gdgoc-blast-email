@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
+from typing import List
 from app.services.campaign_service import CampaignService
 from app.infrastructure import google_auth
 from app.services import mailer_svc
@@ -19,7 +20,8 @@ async def start_campaign(
     subject_template: str = Form(..., description="Subject Email, mendukung variabel seperti {{nama}}"),
     body_template: str = Form(..., description="Body Email dalam format HTML, mendukung variabel seperti {{nama}}"),
     campaign_type: str = Form("sertifikat"),
-    surat_file: UploadFile = File(None)
+    campaign_id: str = Form(..., description="ID campaign untuk mengaitkan log email"),
+    surat_files: List[UploadFile] = File(default=[])
 ):
     """
     Menerima data JSON table dan form template, lalu men-trigger background task Celery melalui CampaignService.
@@ -28,13 +30,20 @@ async def start_campaign(
     import shutil
     import tempfile
     
-    surat_path = None
-    if campaign_type == 'surat' and surat_file:
+    # Simpan semua file surat ke temp dir, buat mapping nama -> path
+    surat_files_map = {}  # {nama_tanpa_ekstensi: path}
+    if campaign_type == 'surat' and surat_files:
         tmp_dir = os.path.join(tempfile.gettempdir(), 'blast_surat')
         os.makedirs(tmp_dir, exist_ok=True)
-        surat_path = os.path.join(tmp_dir, surat_file.filename)
-        with open(surat_path, "wb") as buffer:
-            shutil.copyfileobj(surat_file.file, buffer)
+        for f in surat_files:
+            if f.filename:
+                safe_name = f.filename
+                save_path = os.path.join(tmp_dir, safe_name)
+                with open(save_path, "wb") as buffer:
+                    shutil.copyfileobj(f.file, buffer)
+                # Key: nama file tanpa ekstensi, lowercase untuk matching
+                name_key = os.path.splitext(safe_name)[0].strip().lower()
+                surat_files_map[name_key] = save_path
 
     try:
         result = CampaignService.start_campaign(
@@ -43,7 +52,8 @@ async def start_campaign(
             subject_template=subject_template,
             body_template=body_template,
             campaign_type=campaign_type,
-            surat_file_path=surat_path
+            campaign_id=campaign_id,
+            surat_files_map=surat_files_map if surat_files_map else None
         )
         return result
     except ValueError as e:

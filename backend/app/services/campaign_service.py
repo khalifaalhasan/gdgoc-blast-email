@@ -5,7 +5,7 @@ from worker import blast_email_task, celery_app
 
 class CampaignService:
     @staticmethod
-    def start_campaign(rows_json: str, drive_links_json: str, subject_template: str, body_template: str, campaign_type: str = "sertifikat", surat_file_path: str = None):
+    def start_campaign(rows_json: str, drive_links_json: str, subject_template: str, body_template: str, campaign_type: str = "sertifikat", campaign_id: str = None, surat_files_map: dict = None):
         try:
             rows = json.loads(rows_json)
         except Exception as e:
@@ -14,7 +14,7 @@ class CampaignService:
         if not rows:
             raise ValueError("CSV kosong")
 
-        task = blast_email_task.delay(rows, drive_links_json, subject_template, body_template, campaign_type, surat_file_path)
+        task = blast_email_task.delay(rows, drive_links_json, subject_template, body_template, campaign_type, surat_files_map, campaign_id=campaign_id)
 
         return {
             "message": "Campaign berhasil dimulai di background",
