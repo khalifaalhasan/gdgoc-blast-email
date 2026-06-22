@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import Papa from 'papaparse';
+import { useState, useEffect, useCallback, useRef } from "react";
+import Papa from "papaparse";
 
 interface DriveLinkEntry {
   role: string;
@@ -12,7 +12,9 @@ export function useFormPersist(campaignId: string) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // States
-  const [subject, setSubject] = useState("[Certificate of Appreciation] Secure Computer User");
+  const [subject, setSubject] = useState(
+    "[Certificate of Appreciation] Secure Computer User",
+  );
   const [themeColor, setThemeColor] = useState("blue");
   const [body, setBody] = useState(`<p>Hi {{nama}} ✨</p>
 <p>Thank you for being a part of <strong>GDGoC UNSRI InspireHer 2026</strong>. We truly appreciate your contribution and dedication as a <strong>{{role}}</strong> during the event.</p>
@@ -28,10 +30,19 @@ export function useFormPersist(campaignId: string) {
 
   const [file, setFile] = useState<File | null>(null);
   const [suratFile, setSuratFile] = useState<File | null>(null);
-  const [csvPreview, setCsvPreview] = useState<{ headers: string[]; rows: any[] } | null>(null);
-  const [campaignType, setCampaignType] = useState<'sertifikat' | 'surat'>(() => {
-    return (localStorage.getItem(`campaignType_${campaignId}`) as 'sertifikat' | 'surat') || 'sertifikat';
-  });
+  const [csvPreview, setCsvPreview] = useState<{
+    headers: string[];
+    rows: Record<string, string>[];
+  } | null>(null);
+  const [campaignType, setCampaignType] = useState<"sertifikat" | "surat">(
+    () => {
+      return (
+        (localStorage.getItem(`campaignType_${campaignId}`) as
+          | "sertifikat"
+          | "surat") || "sertifikat"
+      );
+    },
+  );
 
   useEffect(() => {
     if (campaignId) {
@@ -48,7 +59,7 @@ export function useFormPersist(campaignId: string) {
       complete: (results) => {
         if (results.data && results.data.length > 0) {
           const headers = Object.keys(results.data[0] as object);
-          setCsvPreview({ headers, rows: results.data });
+          setCsvPreview({ headers, rows: results.data as Record<string, string>[] });
         } else {
           setCsvPreview(null);
         }
@@ -66,17 +77,17 @@ export function useFormPersist(campaignId: string) {
           if (data.subject_template) setSubject(data.subject_template);
           if (data.theme_color) setThemeColor(data.theme_color);
           if (data.body_template) setBody(data.body_template);
-          
+
           if (data.drive_links) {
-            const links = Object.keys(data.drive_links).map(role => ({
+            const links = Object.keys(data.drive_links).map((role) => ({
               role,
-              url: data.drive_links[role]
+              url: data.drive_links[role],
             }));
             if (links.length > 0) {
               setDriveLinksList(links);
             }
           }
-          
+
           if (data.csv_data && data.csv_data.length > 0) {
             const headers = Object.keys(data.csv_data[0] as object);
             setCsvPreview({ headers, rows: data.csv_data });
@@ -99,9 +110,9 @@ export function useFormPersist(campaignId: string) {
   // Autosave
   const saveToApi = useCallback(async () => {
     if (!campaignId) return;
-    
+
     const drive_links: Record<string, string> = {};
-    driveLinksList.forEach(l => {
+    driveLinksList.forEach((l) => {
       if (l.role.trim() && l.url.trim()) {
         drive_links[l.role.trim()] = l.url.trim();
       }
@@ -109,15 +120,15 @@ export function useFormPersist(campaignId: string) {
 
     try {
       await fetch(`${API_URL}/campaigns/${campaignId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subject_template: subject,
           body_template: body,
           theme_color: themeColor,
           drive_links,
-          csv_data: csvPreview ? csvPreview.rows : []
-        })
+          csv_data: csvPreview ? csvPreview.rows : [],
+        }),
       });
     } catch (e) {
       console.error("Autosave failed", e);
@@ -130,7 +141,15 @@ export function useFormPersist(campaignId: string) {
       saveToApi();
     }, 1500);
     return () => clearTimeout(timeoutId);
-  }, [subject, themeColor, body, driveLinksList, csvPreview, isLoaded, saveToApi]);
+  }, [
+    subject,
+    themeColor,
+    body,
+    driveLinksList,
+    csvPreview,
+    isLoaded,
+    saveToApi,
+  ]);
 
   useEffect(() => {
     if (file && isLoaded) {
@@ -140,13 +159,21 @@ export function useFormPersist(campaignId: string) {
 
   return {
     isLoaded,
-    themeColor, setThemeColor,
-    subject, setSubject,
-    body, setBody,
-    driveLinksList, setDriveLinksList,
-    file, setFile,
-    suratFile, setSuratFile,
-    csvPreview, setCsvPreview,
-    campaignType, setCampaignType
+    themeColor,
+    setThemeColor,
+    subject,
+    setSubject,
+    body,
+    setBody,
+    driveLinksList,
+    setDriveLinksList,
+    file,
+    setFile,
+    suratFile,
+    setSuratFile,
+    csvPreview,
+    setCsvPreview,
+    campaignType,
+    setCampaignType,
   };
 }

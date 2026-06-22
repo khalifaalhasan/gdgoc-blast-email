@@ -5,13 +5,19 @@ interface ProgressTrackerProps {
   taskId: string | null;
   status: CampaignStatus | null;
   onReset: () => void;
-  onReviewResults?: (failedRows: any[], successfulRows: any[]) => void;
+  onReviewResults?: (failedRows: Record<string, string>[], successfulRows: Record<string, string>[]) => void;
 }
 
-export function ProgressTracker({ taskId, status, onReset, onReviewResults }: ProgressTrackerProps) {
-  const percentage = status && status.total > 0 
-    ? Math.round(((status.success + status.fail) / status.total) * 100) 
-    : 0;
+export function ProgressTracker({
+  taskId,
+  status,
+  onReset,
+  onReviewResults,
+}: ProgressTrackerProps) {
+  const percentage =
+    status && status.total > 0
+      ? Math.round(((status.success + status.fail) / status.total) * 100)
+      : 0;
 
   const hasErrors = status && (status.fail > 0 || status.state === "FAILURE");
 
@@ -33,13 +39,21 @@ export function ProgressTracker({ taskId, status, onReset, onReviewResults }: Pr
         <div className="flex flex-col flex-1 overflow-hidden">
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-muted-foreground">Status</span>
-              <span className={`
+              <span className="text-sm font-medium text-muted-foreground">
+                Status
+              </span>
+              <span
+                className={`
                 text-xs font-bold px-2.5 py-1 rounded-md
-                ${status.status === "Selesai" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : 
-                  status.status === "Gagal" ? "bg-destructive/10 text-destructive" : 
-                  "bg-primary/10 text-primary"}
-              `}>
+                ${
+                  status.status === "Selesai"
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : status.status === "Gagal"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-primary/10 text-primary"
+                }
+              `}
+              >
                 {status.status || status.state}
               </span>
             </div>
@@ -47,9 +61,9 @@ export function ProgressTracker({ taskId, status, onReset, onReviewResults }: Pr
             {/* Progress Bar */}
             {status.total > 0 && (
               <div className="w-full bg-muted rounded-full h-2.5 mt-4 overflow-hidden">
-                <div 
-                  className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out" 
-                  style={{ width: `${percentage}%` }} 
+                <div
+                  className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${percentage}%` }}
                 />
               </div>
             )}
@@ -58,16 +72,24 @@ export function ProgressTracker({ taskId, status, onReset, onReviewResults }: Pr
               <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
                 <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">Sukses</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider">
+                    Sukses
+                  </span>
                 </div>
-                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{status.success || 0}</p>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {status.success || 0}
+                </p>
               </div>
               <div className="bg-destructive/10 rounded-xl p-4 border border-destructive/20">
                 <div className="flex items-center gap-1.5 text-destructive mb-1">
                   <XCircle className="w-4 h-4" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">Gagal</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider">
+                    Gagal
+                  </span>
                 </div>
-                <p className="text-3xl font-bold text-destructive">{status.fail || 0}</p>
+                <p className="text-3xl font-bold text-destructive">
+                  {status.fail || 0}
+                </p>
               </div>
             </div>
           </div>
@@ -78,20 +100,38 @@ export function ProgressTracker({ taskId, status, onReset, onReviewResults }: Pr
               status.logs.map((log: string, idx: number) => (
                 <div key={idx} className="mb-1.5 break-words">
                   <span className="text-primary mr-2">{">"}</span>
-                  <span className={log.includes("❌") ? "text-red-400" : log.includes("✅") ? "text-emerald-400" : ""}>{log}</span>
+                  <span
+                    className={
+                      log.includes("❌")
+                        ? "text-red-400"
+                        : log.includes("✅")
+                          ? "text-emerald-400"
+                          : ""
+                    }
+                  >
+                    {log}
+                  </span>
                 </div>
               ))
             ) : (
-              <span className="text-slate-500 italic">Logs akan muncul di sini...</span>
+              <span className="text-slate-500 italic">
+                Logs akan muncul di sini...
+              </span>
             )}
           </div>
 
-          {(status.status === "Selesai" || status.status === "Gagal" || status.state === "FAILURE") && (
+          {(status.status === "Selesai" ||
+            status.status === "Gagal" ||
+            status.state === "FAILURE") && (
             <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
               <div className="flex justify-between items-center bg-primary/10 p-4 rounded-xl">
                 <div>
-                  <p className="font-bold text-primary text-lg">Proses Selesai!</p>
-                  <p className="text-sm text-primary/80 font-medium">Semua email telah diproses.</p>
+                  <p className="font-bold text-primary text-lg">
+                    Proses Selesai!
+                  </p>
+                  <p className="text-sm text-primary/80 font-medium">
+                    Semua email telah diproses.
+                  </p>
                 </div>
                 {hasErrors ? (
                   <div className="bg-destructive/10 px-3 py-1.5 rounded-lg border border-destructive/20 text-destructive text-sm font-bold flex items-center gap-2">
@@ -103,16 +143,18 @@ export function ProgressTracker({ taskId, status, onReset, onReviewResults }: Pr
                   </div>
                 )}
               </div>
-              
+
               <div className="flex gap-3 justify-end mt-2">
                 <button
                   onClick={onReset}
                   className="px-4 py-2 rounded-lg border border-input bg-transparent text-foreground text-sm font-semibold cursor-pointer hover:bg-muted transition-colors"
                 >
-                  Buat Campaign Baru
+                  Kembali ke Mode Edit
                 </button>
-                
-                {status.result && (status.result.failed_rows?.length || status.result.successful_rows?.length) ? (
+
+                {status.result &&
+                (status.result.failed_rows?.length ||
+                  status.result.successful_rows?.length) ? (
                   <button
                     onClick={() => {
                       const failed = status.result?.failed_rows || [];

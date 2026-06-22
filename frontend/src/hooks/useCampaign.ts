@@ -8,16 +8,18 @@ export function useCampaign() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submitCampaign = async (formData: FormData) => {
+  const submitCampaign = async (campaignId: string, formData: FormData) => {
     setIsLoading(true);
     setError(null);
     setStatus(null);
     setTaskId(null);
     try {
+      formData.append("campaign_id", campaignId);
       const data = await startCampaign(formData);
       setTaskId(data.task_id);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -28,10 +30,14 @@ export function useCampaign() {
     try {
       const { data } = await getCampaignStatus(taskId);
       setStatus(data as CampaignStatus);
-      if (data.status === "Selesai" || data.status === "Gagal" || data.state === "FAILURE") {
+      if (
+        data.status === "Selesai" ||
+        data.status === "Gagal" ||
+        data.state === "FAILURE"
+      ) {
         return true;
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
     }
     return false;
@@ -39,7 +45,12 @@ export function useCampaign() {
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    if (taskId && status?.status !== "Selesai" && status?.status !== "Gagal" && status?.state !== "FAILURE") {
+    if (
+      taskId &&
+      status?.status !== "Selesai" &&
+      status?.status !== "Gagal" &&
+      status?.state !== "FAILURE"
+    ) {
       interval = setInterval(async () => {
         const isFinished = await checkStatus();
         if (isFinished) clearInterval(interval);

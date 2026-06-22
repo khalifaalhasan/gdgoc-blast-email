@@ -7,8 +7,8 @@ export interface CampaignStatus {
   logs: string[];
   status: string;
   result?: {
-    failed_rows?: any[];
-    successful_rows?: any[];
+    failed_rows?: Record<string, string>[];
+    successful_rows?: Record<string, string>[];
   };
 }
 

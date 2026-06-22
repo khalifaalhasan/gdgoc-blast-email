@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export interface CampaignMeta {
   id: string;
@@ -17,11 +17,13 @@ export function useCampaignList() {
       const res = await fetch(`${API_URL}/campaigns`);
       if (res.ok) {
         const data = await res.json();
-        setCampaigns(data.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          createdAt: new Date(c.created_at).getTime()
-        })));
+        setCampaigns(
+          data.map((c: Record<string, unknown>) => ({
+            id: c.id as string,
+            name: c.name as string,
+            createdAt: new Date(c.created_at as string).getTime(),
+          })),
+        );
       }
     } catch (err) {
       console.error("Gagal memuat list campaign:", err);
@@ -31,28 +33,28 @@ export function useCampaignList() {
   };
 
   useEffect(() => {
-    fetchCampaigns();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchCampaigns();
   }, []);
 
   const addCampaign = async (name: string) => {
     const res = await fetch(`${API_URL}/campaigns`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
     });
     if (res.ok) {
       const data = await res.json();
       await fetchCampaigns();
       return data.id;
     }
-    throw new Error('Gagal membuat campaign');
+    throw new Error("Gagal membuat campaign");
   };
 
   const deleteCampaign = async (id: string) => {
-    await fetch(`${API_URL}/campaigns/${id}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/campaigns/${id}`, { method: "DELETE" });
     await fetchCampaigns();
   };
 
   return { campaigns, isLoaded, addCampaign, deleteCampaign };
 }
-

@@ -1,5 +1,7 @@
 import React from "react";
 import { DefaultEditor } from "react-simple-wysiwyg";
+import EmojiPicker from "emoji-picker-react";
+import { Smile } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +19,14 @@ interface EmailEditorProps {
   setBody: (v: string) => void;
 }
 
-export function EmailEditor({ subject, setSubject, body, setBody }: EmailEditorProps) {
+export function EmailEditor({
+  subject,
+  setSubject,
+  body,
+  setBody,
+}: EmailEditorProps) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
   const [eventNameInput, setEventNameInput] = React.useState(() => {
     return localStorage.getItem("lastEventName") || "Build With AI";
   });
@@ -41,6 +49,11 @@ The GDGoC UNSRI 2026 Organizing Team`;
     }
   };
 
+  const onEmojiClick = (emojiObject: any) => {
+    setBody(body + emojiObject.emoji);
+    setShowEmojiPicker(false);
+  };
+
   return (
     <div className="flex flex-col gap-8 transition-colors">
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -52,14 +65,16 @@ The GDGoC UNSRI 2026 Organizing Team`;
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <label className="block text-sm font-medium text-foreground mb-2">Nama Event</label>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Nama Event
+            </label>
             <input
               autoFocus
               type="text"
               value={eventNameInput}
               onChange={(e) => setEventNameInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleApplyTemplate();
+                if (e.key === "Enter") handleApplyTemplate();
               }}
               className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
             />
@@ -85,7 +100,9 @@ The GDGoC UNSRI 2026 Organizing Team`;
 
       <div className="flex-1 flex flex-col gap-6">
         <div>
-          <label className="block text-sm font-bold text-[color:var(--lt-text-primary)] mb-2">Subject Email</label>
+          <label className="block text-sm font-bold text-[color:var(--lt-text-primary)] mb-2">
+            Subject Email
+          </label>
           <input
             type="text"
             value={subject}
@@ -97,19 +114,38 @@ The GDGoC UNSRI 2026 Organizing Team`;
 
         <div>
           <div className="flex justify-between items-end mb-2">
-            <label className="block text-sm font-bold text-[color:var(--lt-text-primary)]">Body Email</label>
-            <button 
-              type="button"
-              onClick={() => setIsDialogOpen(true)}
-              className="text-xs text-[color:var(--lt-primary)] hover:text-[color:var(--lt-primary-hover)] font-semibold"
-            >
-              Gunakan Template E-Certificate
-            </button>
+            <label className="block text-sm font-bold text-[color:var(--lt-text-primary)]">
+              Body Email
+            </label>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="flex items-center gap-1 text-xs text-[color:var(--lt-text-secondary)] hover:text-[color:var(--lt-primary)] font-semibold transition-colors"
+                >
+                  <Smile className="w-4 h-4" />
+                  Emoji
+                </button>
+                {showEmojiPicker && (
+                  <div className="absolute z-50 right-0 top-full mt-2 shadow-xl border border-[color:var(--lt-border)] rounded-xl bg-background">
+                    <EmojiPicker onEmojiClick={onEmojiClick} />
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDialogOpen(true)}
+                className="text-xs text-[color:var(--lt-primary)] hover:text-[color:var(--lt-primary-hover)] font-semibold"
+              >
+                Gunakan Template E-Certificate
+              </button>
+            </div>
           </div>
           <div className="text-[color:var(--lt-text-primary)] bg-[color:var(--lt-bg)] border border-[color:var(--lt-border)] rounded-xl overflow-hidden transition-all duration-200 focus-within:border-[color:var(--lt-primary)] focus-within:ring-4 focus-within:ring-[color:var(--lt-primary)]/10 [&_.rsw-editor]:!border-none [&_.rsw-toolbar]:!bg-[color:var(--lt-sidebar)] [&_.rsw-toolbar]:!border-b-[color:var(--lt-border)] [&_.rsw-btn]:!text-[color:var(--lt-text-primary)] [&_.rsw-btn:hover]:!bg-[color:var(--lt-bg)]">
-            <DefaultEditor 
-              value={body} 
-              onChange={(e) => setBody(e.target.value)} 
+            <DefaultEditor
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
             />
           </div>
         </div>
