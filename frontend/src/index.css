@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
 
@@ -35,16 +35,16 @@
   --input: 0.205 0 0;
   --ring: 0.205 0 0;
 
-  /* Linktree Custom Light Vars */
-  --lt-bg: #f4f4f5;
-  --lt-sidebar: #ffffff;
-  --lt-text-primary: #18181b;
-  --lt-text-secondary: #71717a;
-  --lt-primary: #9333ea;
-  --lt-primary-hover: #a855f7;
-  --lt-border: #e4e4e7;
-  --lt-card: #ffffff;
-  --lt-card-hover: #fafafa;
+  /* Linktree Custom Light Vars -> Replaced with Sleek Dark Theme universally */
+  --lt-bg: #0b0c10;
+  --lt-sidebar: #151724;
+  --lt-text-primary: #ffffff;
+  --lt-text-secondary: #9496a8;
+  --lt-primary: #6a35ff;
+  --lt-primary-hover: #5824e6;
+  --lt-border: #2a2c3d;
+  --lt-card: #1b1d29;
+  --lt-card-hover: #232534;
 }
 
 .dark {
@@ -68,24 +68,28 @@
   --input: 0.205 0 0;
   --ring: 0.205 0 0;
 
-  /* Linktree Custom Dark Vars */
-  --lt-bg: #09090b;
-  --lt-sidebar: #121214;
-  --lt-text-primary: #f4f4f5;
-  --lt-text-secondary: #a1a1aa;
-  --lt-primary: #9333ea;
-  --lt-primary-hover: #a855f7;
-  --lt-border: #27272a;
-  --lt-card: #121214;
-  --lt-card-hover: #18181b;
+  /* Sleek Dark Theme */
+  --lt-bg: #0b0c10;
+  --lt-sidebar: #151724;
+  --lt-text-primary: #ffffff;
+  --lt-text-secondary: #9496a8;
+  --lt-primary: #6a35ff;
+  --lt-primary-hover: #5824e6;
+  --lt-border: #2a2c3d;
+  --lt-card: #1b1d29;
+  --lt-card-hover: #232534;
 }
-
-
 
 body {
   background-color: var(--lt-bg);
   color: var(--lt-text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -95,7 +99,7 @@ body {
   .lt-card {
     @apply rounded-2xl border border-[color:var(--lt-border)] bg-[color:var(--lt-card)] shadow-sm transition-colors;
   }
-  
+
   .lt-card-hover:hover {
     @apply bg-[color:var(--lt-card-hover)];
   }
@@ -117,20 +121,48 @@ body {
   }
 
   .lt-nav-item.active {
-    @apply bg-[color:var(--lt-bg)] text-[color:var(--lt-text-primary)] font-semibold;
+    @apply bg-[color:var(--lt-primary)] text-white font-semibold shadow-md shadow-primary/20;
   }
 }
 
 /* Scrollbar Styling */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--lt-border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--lt-text-secondary); }
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--lt-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--lt-text-secondary);
+}
 
 /* Prose styling for email preview */
-.prose p { margin-bottom: 1em; line-height: 1.75; }
-.prose h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75em; }
-.prose h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5em; }
-.prose strong { font-weight: 700; }
-.prose ul, .prose ol { padding-left: 1.5em; margin-bottom: 1em; }
-.prose li { margin-bottom: 0.25em; }
+.prose p {
+  margin-bottom: 1em;
+  line-height: 1.75;
+}
+.prose h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75em;
+}
+.prose h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5em;
+}
+.prose strong {
+  font-weight: 700;
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+.prose li {
+  margin-bottom: 0.25em;
+}
