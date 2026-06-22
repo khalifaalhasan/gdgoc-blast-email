@@ -30,7 +30,7 @@ backend:
 	cd backend && ./venv/bin/uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 worker:
-	cd backend && ./venv/bin/celery -A worker.celery_app worker --loglevel=info
+	cd backend && ./venv/bin/watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- ./venv/bin/celery -A worker.celery_app worker --loglevel=info
 
 dev-backend: infra-up
 	@echo "Menjalankan Backend & Worker secara paralel..."
@@ -39,3 +39,8 @@ dev-backend: infra-up
 # --- FRONTEND ---
 frontend:
 	cd frontend && npm run dev
+
+# --- RUN ALL ---
+dev: infra-up
+	@echo "Menjalankan Backend, Worker, dan Frontend secara paralel..."
+	make -j3 backend worker frontend

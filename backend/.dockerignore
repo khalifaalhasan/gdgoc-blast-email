@@ -1,0 +1,18 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+
+# Google credentials — di-inject via Docker volume mount, bukan baked ke image
+credentials.json
+token.json
+
+# Folder temporary runtime
+temp_certs/
+data/
+
+# Dev tools
+.git
+*.md

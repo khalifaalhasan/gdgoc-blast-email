@@ -24,9 +24,16 @@ jobs:
         mkdir -p ~/.ssh
         ssh-keyscan -p ${{ secrets.VPS_PORT }} -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
+    - name: Write Google Credentials to backend/
+      run: |
+        # Decode base64 secrets dan tulis ke folder backend/ sebelum rsync
+        # Cara membuat secret-nya (jalankan sekali di lokal):
+        #   cat backend/credentials.json | base64 -w 0   → simpan sebagai GOOGLE_CREDENTIALS_JSON
+        echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" | base64 -d > backend/credentials.json
+
     - name: Sync files via rsync
       run: |
-        # Meng-copy semua source code ke VPS (kecuali .git)
+        # Copy semua source code + credentials ke VPS (kecuali .git)
         rsync -avz -e "ssh -p ${{ secrets.VPS_PORT }}" --exclude='.git' ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_TARGET_DIR }}
 
     - name: Run docker-compose and Migration on VPS
@@ -36,25 +43,17 @@ jobs:
           
           # Setup .env file based on Github Secrets
           cat << 'ENVFILE' > .env
-          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
-          SENDER_NAME="${{ secrets.SENDER_NAME }}"
-          SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
-          VITE_API_URL=${{ secrets.VITE_API_URL }}
-          VITE_EMAIL_ASSET_BASE_URL=${{ secrets.VITE_EMAIL_ASSET_BASE_URL }}
-          VITE_LINK_INSTAGRAM=${{ secrets.VITE_LINK_INSTAGRAM }}
-          VITE_LINK_LINKEDIN=${{ secrets.VITE_LINK_LINKEDIN }}
-          VITE_LINK_GITHUB=${{ secrets.VITE_LINK_GITHUB }}
-          VITE_LINK_WEBSITE=${{ secrets.VITE_LINK_WEBSITE }}
+        ${{ secrets.ENV_BE }}
+        
+        ${{ secrets.ENV_FE }}
         ENVFILE
           
           # Build ulang image dan jalankan container baru
-          # docker-compose.prod.yml digunakan agar tidak bentrok dengan local setup
-          docker-compose -f docker-compose.prod.yml up -d --build
+          # Rename file docker-compose agar menjadi default (tanpa akhiran prod)
+          mv docker-compose.prod.yml docker-compose.yml
+          docker-compose up -d --build
           
-          # Karena command backend sudah di-set untuk menjalankan: 
-          # "alembic upgrade head && uvicorn main:app", 
+          # Karena command backend sudah di-set untuk menjalankan:
+          # "alembic upgrade head && uvicorn main:app",
           # migration akan otomatis dieksekusi saat container backend naik.
         EOF

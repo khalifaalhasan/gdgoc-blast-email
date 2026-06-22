@@ -33,6 +33,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-blast_email}
       - REDIS_URL=redis://redis:6379/0
       - FRONTEND_URL=${FRONTEND_URL}
+      - BACKEND_URL=${BACKEND_URL}
       - SENDER_NAME=${SENDER_NAME}
       - SENDER_EMAIL=${SENDER_EMAIL}
     depends_on:
@@ -42,7 +43,6 @@ services:
     volumes:
       - ./backend/temp_certs:/app/temp_certs
       - ./backend/credentials.json:/app/credentials.json:ro
-      - ./backend/token.json:/app/token.json:ro
 
   celery_worker:
     build: 
@@ -53,6 +53,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-blast_email}
       - REDIS_URL=redis://redis:6379/0
+      - FRONTEND_URL=${FRONTEND_URL}
+      - BACKEND_URL=${BACKEND_URL}
+      - SENDER_NAME=${SENDER_NAME}
+      - SENDER_EMAIL=${SENDER_EMAIL}
     depends_on:
       - db
       - redis
@@ -61,7 +65,6 @@ services:
     volumes:
       - ./backend/temp_certs:/app/temp_certs
       - ./backend/credentials.json:/app/credentials.json:ro
-      - ./backend/token.json:/app/token.json:ro
 
   frontend:
     build:
