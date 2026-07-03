@@ -1,0 +1,26 @@
+.git
+.github
+.gitignore
+README.md
+Makefile
+
+# Backend ignores
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/.env
+backend/.env.*
+backend/credentials.json
+backend/token.json
+backend/temp_certs/
+backend/data/
+
+# Frontend ignores
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.env
+frontend/.env.*
+frontend/.vscode/
+frontend/.idea/
