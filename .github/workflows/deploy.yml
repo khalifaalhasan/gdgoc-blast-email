@@ -5,13 +5,63 @@ on:
     branches:
       - main
 
+env:
+  REGISTRY: ghcr.io
+  # Converts repository name to lowercase for Docker image name
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+    # Create frontend .env for build args
+    - name: Prepare Frontend Env for Build
+      run: |
+        echo "${{ secrets.ENV_FE }}" > frontend/.env
+        # Remove .env from .dockerignore so it is included in the build context
+        sed -i '/^\.env$/d' frontend/.dockerignore || true
+        sed -i '/^\.env\.\*$/d' frontend/.dockerignore || true
+
+    - name: Build and push Backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push Frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.9.0
@@ -23,36 +73,42 @@ jobs:
         mkdir -p ~/.ssh
         ssh-keyscan -p ${{ secrets.VPS_PORT }} -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Write Google Credentials to backend/
+    - name: Prepare Deployment Files
       run: |
-        # Decode base64 secrets dan tulis ke folder backend/ sebelum rsync
-        # Cara membuat secret-nya (jalankan sekali di lokal):
-        #   cat backend/credentials.json | base64 -w 0   → simpan sebagai GOOGLE_CREDENTIALS_JSON
-        echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" | base64 -d > backend/credentials.json
+        mkdir -p deploy/backend
+        cp docker-compose.prod.yml deploy/docker-compose.yml
+        
+        # Write .env file
+        echo "${{ secrets.ENV_BE }}" > deploy/.env
+        echo "${{ secrets.ENV_FE }}" >> deploy/.env
+        
+        # Inject GHCR image variables to .env so docker-compose knows what to pull
+        echo "" >> deploy/.env
+        echo "GHCR_IMAGE_BACKEND=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest" | tr '[:upper:]' '[:lower:]' >> deploy/.env
+        echo "GHCR_IMAGE_FRONTEND=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest" | tr '[:upper:]' '[:lower:]' >> deploy/.env
+        
+        # Decode base64 credentials
+        echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" | base64 -d > deploy/backend/credentials.json
 
-    - name: Sync files via rsync
+    - name: Sync configuration files via rsync
       run: |
-        # Copy semua source code + credentials ke VPS (kecuali .git)
-        rsync -avz -e "ssh -p ${{ secrets.VPS_PORT }}" --exclude='.git' ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_TARGET_DIR }}
+        # Hanya copy folder deploy/ ke VPS (tidak ada source code)
+        rsync -avz -e "ssh -p ${{ secrets.VPS_PORT }}" deploy/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_TARGET_DIR }}/
 
-    - name: Run docker-compose and Migration on VPS
+    - name: Deploy on VPS
       run: |
         ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           cd ${{ secrets.VPS_TARGET_DIR }}
           
-          # Setup .env file based on Github Secrets
-          cat << 'ENVFILE' > .env
-        ${{ secrets.ENV_BE }}
-        
-        ${{ secrets.ENV_FE }}
-        ENVFILE
+          # Login to GHCR to pull images (using PAT or GITHUB_TOKEN)
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
           
-          # Build ulang image dan jalankan container baru
-          # Rename file docker-compose agar menjadi default (tanpa akhiran prod)
-          mv docker-compose.prod.yml docker-compose.yml
-          docker-compose up -d --build
+          # Pull the latest images
+          docker-compose pull
           
-          # Karena command backend sudah di-set untuk menjalankan:
-          # "alembic upgrade head && uvicorn main:app",
-          # migration akan otomatis dieksekusi saat container backend naik.
+          # Start/Restart containers with the new images
+          docker-compose up -d
+          
+          # Clean up unused dangling images to free up space
+          docker image prune -af
         EOF

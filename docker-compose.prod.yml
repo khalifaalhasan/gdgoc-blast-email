@@ -22,9 +22,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${GHCR_IMAGE_BACKEND:-backend}
     container_name: blast_email_backend
     command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
     ports:
@@ -45,9 +43,7 @@ services:
       - ./backend/credentials.json:/app/credentials.json:ro
 
   celery_worker:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${GHCR_IMAGE_BACKEND:-backend}
     container_name: blast_email_celery
     command: celery -A worker worker -l info
     environment:
@@ -67,16 +63,7 @@ services:
       - ./backend/credentials.json:/app/credentials.json:ro
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL}
-        - VITE_EMAIL_ASSET_BASE_URL=${VITE_EMAIL_ASSET_BASE_URL}
-        - VITE_LINK_INSTAGRAM=${VITE_LINK_INSTAGRAM}
-        - VITE_LINK_LINKEDIN=${VITE_LINK_LINKEDIN}
-        - VITE_LINK_GITHUB=${VITE_LINK_GITHUB}
-        - VITE_LINK_WEBSITE=${VITE_LINK_WEBSITE}
+    image: ${GHCR_IMAGE_FRONTEND:-frontend}
     container_name: blast_email_frontend
     ports:
       - "80:80"
