@@ -23,9 +23,9 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '../.env'))
 # add your model's MetaData object here
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from app.db.database import Base
+from src.db.database import Base
 # Import all models here to ensure they are registered
-from app.db.models import *
+from src.db.models import *
 
 target_metadata = Base.metadata
 

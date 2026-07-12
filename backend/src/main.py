@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import config
-from app.api.routes.blast import router as blast_router
-from app.api.routes.campaigns import router as campaigns_router
-from app.api.routes.history import router as history_router
-from app.api.routes.auth import router as auth_router
-from app.db.database import engine, Base
-from app.db import models
+from src.core.config import config
+from src.api.routes.blast import router as blast_router
+from src.api.routes.campaigns import router as campaigns_router
+from src.api.routes.history import router as history_router
+from src.api.routes.auth import router as auth_router
+from src.db.database import engine, Base
+from src.db import models
 
 import logging
 from contextlib import asynccontextmanager
@@ -49,4 +49,4 @@ app.include_router(auth_router, prefix="/api", tags=["Google Auth"])
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)

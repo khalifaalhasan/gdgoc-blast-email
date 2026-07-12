@@ -24,13 +24,13 @@ infra-down:
 
 # --- BACKEND ---
 google-auth:
-	cd backend && ./venv/bin/python -c "from app.infrastructure.google_auth import get_credentials; get_credentials()"
+	cd backend && ./venv/bin/python -c "from src.infrastructure.google_auth import get_credentials; get_credentials()"
 
 backend:
-	cd backend && ./venv/bin/uvicorn main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && ./venv/bin/uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 worker:
-	cd backend && ./venv/bin/watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- ./venv/bin/celery -A worker.celery_app worker --loglevel=info
+	cd backend && ./venv/bin/watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- ./venv/bin/celery -A src.worker.celery_app worker --loglevel=info
 
 dev-backend: infra-up
 	@echo "Menjalankan Backend & Worker secara paralel..."

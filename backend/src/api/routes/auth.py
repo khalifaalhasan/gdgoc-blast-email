@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse, JSONResponse
 from google_auth_oauthlib.flow import Flow
-from app.core.config import config
-from app.infrastructure.google_auth import check_token_status, save_credentials
+from src.core.config import config
+from src.infrastructure.google_auth import check_token_status, save_credentials
 
 router = APIRouter()
 

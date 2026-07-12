@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from app.core.config import config
+from src.core.config import config
 import os
 
 # Asumsi .env menggunakan format:
