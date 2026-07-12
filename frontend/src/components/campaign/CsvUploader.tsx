@@ -20,6 +20,7 @@ export function CsvUploader({
     Papa.parse(selectedFile, {
       header: true,
       skipEmptyLines: true,
+      transformHeader: (header) => header.replace(/^\uFEFF/g, '').trim(),
       // Hapus pembatasan preview agar semua data terbaca
       complete: (results) => {
         if (results.data && results.data.length > 0) {
