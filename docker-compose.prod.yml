@@ -24,7 +24,7 @@ services:
   backend:
     image: ${GHCR_IMAGE_BACKEND:-backend}
     container_name: blast_email_backend
-    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     environment:
@@ -45,7 +45,7 @@ services:
   celery_worker:
     image: ${GHCR_IMAGE_BACKEND:-backend}
     container_name: blast_email_celery
-    command: celery -A worker worker -l info
+    command: celery -A src.worker.celery_app worker -l info
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-blast_email}
       - REDIS_URL=redis://redis:6379/0

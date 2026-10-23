@@ -18,11 +18,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Idempotent: tabel mungkin sudah dibuat oleh Base.metadata.create_all() saat startup app
+    if sa.inspect(op.get_bind()).has_table('email_logs'):
+        return
     op.create_table(
         'email_logs',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('task_id', sa.String(), nullable=False, index=True),
-        sa.Column('campaign_id', postgresql.UUID(as_uuid=True), nullable=True, index=True),
+        sa.Column('task_id', sa.String(), nullable=False),
+        sa.Column('campaign_id', postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column('nama', sa.String(), nullable=True),
         sa.Column('email', sa.String(), nullable=True),
         sa.Column('role', sa.String(), nullable=True),
@@ -32,7 +35,6 @@ def upgrade() -> None:
     )
     op.create_index('ix_email_logs_task_id', 'email_logs', ['task_id'])
     op.create_index('ix_email_logs_campaign_id', 'email_logs', ['campaign_id'])
-
 
 def downgrade() -> None:
     op.drop_index('ix_email_logs_campaign_id', table_name='email_logs')

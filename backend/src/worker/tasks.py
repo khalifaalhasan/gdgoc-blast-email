@@ -21,6 +21,7 @@ import json
 import time
 import random
 import traceback as _traceback
+from collections import Counter
 
 from src.worker import celery_app
 from src.infrastructure import google_auth, google_drive
@@ -133,51 +134,52 @@ def blast_email_task(
     temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'temp_certs')
     os.makedirs(temp_dir, exist_ok=True)
 
-    try:
-        for row in rows:
-            nama = None
-            email = None
-            role = "Participant"
+    # Penerima dengan 2 kata pertama nama yang sama (misal "Muhammad Rizki A" & "Muhammad Rizki B")
+    # wajib cocok NAMA LENGKAP di Drive, supaya sertifikat tidak tertukar.
+    name_key_counts = Counter(
+        google_drive.name_key(nama) for nama, _, _ in map(_extract_fields, rows) if nama
+    )
 
-            print(f"DEBUG ROW KEYS: {list(row.keys())}", flush=True)
+    quota_exhausted = False
 
-            for k, v in row.items():
-                if not k:
-                    continue
-                k_lower = str(k).lower().replace('\ufeff', '').strip()
-                if any(x in k_lower for x in ['nama', 'name']) and not nama:
-                    nama = str(v).strip() if v else None
-                elif any(x in k_lower for x in ['email', 'e-mail']) and not email:
-                    email = str(v).strip() if v else None
-                elif 'role' in k_lower and role == "Participant":
-                    role = str(v).strip() if v else "Participant"
+    for row in rows:
+        nama, email, role = _extract_fields(row)
 
-            if not nama or not email:
-                record_fail(row, nama, email, role, "Kolom nama atau email kosong / tidak ditemukan di dataset CSV")
-                continue
+        if quota_exhausted:
+            record_fail(
+                row, nama, email, role,
+                "Belum dikirim: kuota harian Gmail habis. Kirim ulang lewat 'Resend yang Gagal' besok.",
+            )
+            continue
 
-            if '@' not in email or '.' not in email.split('@')[-1]:
-                record_fail(row, nama, email, role, f"Format email tidak valid: '{email}'")
-                continue
+        if not nama or not email:
+            record_fail(row, nama, email, role, "Kolom nama atau email kosong / tidak ditemukan di dataset CSV")
+            continue
 
+        if '@' not in email or '.' not in email.split('@')[-1]:
+            record_fail(row, nama, email, role, f"Format email tidak valid: '{email}'")
+            continue
+
+        save_path = None
+        sent_attempted = False
+        try:
             # --- Tentukan folder Drive berdasarkan role ---
+            # Fallback ke 'default' atau ke satu-satunya folder. Jika ada beberapa folder dan
+            # role tidak cocok, JANGAN tebak folder lain (bisa mengambil sertifikat role lain).
             normalized_role = role.strip().lower()
-            current_folder_id = None
-            if folder_ids:
-                current_folder_id = (
-                    folder_ids.get(normalized_role)
-                    or folder_ids.get('default')
-                    or (list(folder_ids.values())[0] if folder_ids else None)
-                )
+            current_folder_id = folder_ids.get(normalized_role) or folder_ids.get('default')
+            if not current_folder_id and len(folder_ids) == 1:
+                current_folder_id = next(iter(folder_ids.values()))
+
+            require_full_name = name_key_counts[google_drive.name_key(nama)] > 1
 
             # --- Cari / download file lampiran ---
-            save_path = None
-
             if campaign_type == 'surat':
                 if surat_files_map:
                     nama_key = nama.strip().lower()
                     save_path = surat_files_map.get(nama_key)
                     if not save_path or not os.path.exists(save_path):
+                        save_path = None
                         record_fail(
                             row, nama, email, role,
                             f"File surat tidak ditemukan untuk '{nama}'. "
@@ -188,7 +190,9 @@ def blast_email_task(
                 elif current_folder_id:
                     logs.append(f"Mencari surat untuk '{nama}' di Google Drive...")
                     update_progress()
-                    file_match = google_drive.find_file_in_drive(drive_service, current_folder_id, nama)
+                    file_match = google_drive.find_file_in_drive(
+                        drive_service, current_folder_id, nama, require_full_name=require_full_name
+                    )
                     if not file_match:
                         record_fail(
                             row, nama, email, role,
@@ -196,37 +200,35 @@ def blast_email_task(
                             f"Pastikan ada file bernama '{nama}.pdf' di folder Drive tersebut.",
                         )
                         continue
-                    file_id = file_match['id']
-                    file_name = file_match['name']
-                    save_path = os.path.join(temp_dir, file_name)
-                    if not google_drive.download_file(drive_service, file_id, save_path):
-                        record_fail(
-                            row, nama, email, role,
-                            f"Gagal mengunduh file dari Google Drive untuk '{nama}'. "
-                            f"Periksa koneksi atau izin akses folder Drive.",
-                        )
-                        continue
+                    save_path = os.path.join(temp_dir, file_match['name'])
+                    google_drive.download_file(drive_service, file_match['id'], save_path)
             else:
-                if current_folder_id:
-                    logs.append(f"Mencari sertifikat untuk '{nama}' ({role})...")
-                    update_progress()
-                    file_match = google_drive.find_file_in_drive(drive_service, current_folder_id, nama)
-                    if not file_match:
-                        record_fail(
-                            row, nama, email, role,
-                            f"Sertifikat tidak ditemukan di Google Drive untuk '{nama}' (role: {role}). "
-                            f"Pastikan nama file PDF sama persis dengan kolom nama di CSV.",
-                        )
-                        continue
-                    file_id = file_match['id']
-                    file_name = file_match['name']
-                    save_path = os.path.join(temp_dir, file_name)
-                    if not google_drive.download_file(drive_service, file_id, save_path):
-                        record_fail(
-                            row, nama, email, role,
-                            f"Gagal mengunduh sertifikat dari Google Drive untuk '{nama}'.",
-                        )
-                        continue
+                # Sertifikat WAJIB punya lampiran — jangan kirim email kosong.
+                if not current_folder_id:
+                    record_fail(
+                        row, nama, email, role,
+                        f"Link folder Drive untuk role '{role}' belum diisi atau tidak valid. "
+                        f"Email tidak dikirim karena sertifikat wajib terlampir.",
+                    )
+                    continue
+                logs.append(f"Mencari sertifikat untuk '{nama}' ({role})...")
+                update_progress()
+                file_match = google_drive.find_file_in_drive(
+                    drive_service, current_folder_id, nama, require_full_name=require_full_name
+                )
+                if not file_match:
+                    hint = (
+                        " Ada penerima lain dengan awalan nama yang sama, jadi nama file harus memuat nama lengkap."
+                        if require_full_name else ""
+                    )
+                    record_fail(
+                        row, nama, email, role,
+                        f"Sertifikat tidak ditemukan di Google Drive untuk '{nama}' (role: {role}). "
+                        f"Pastikan nama file PDF sama persis dengan kolom nama di CSV.{hint}",
+                    )
+                    continue
+                save_path = os.path.join(temp_dir, file_match['name'])
+                google_drive.download_file(drive_service, file_match['id'], save_path)
 
             # --- Kirim email ---
             actual_subject = subject_template.replace('{{nama}}', nama).replace('{{role}}', role)
@@ -241,41 +243,39 @@ def blast_email_task(
                 sender_email=config.SENDER_EMAIL,
             )
 
-            if gmail_adapter.send_email(gmail_service, message):
-                success_count += 1
-                success_row = row.copy()
-                success_row['_status'] = 'success'
-                successful_rows.append(success_row)
-                logs.append(f"✅ SUKSES: Email terkirim ke {nama} ({email})")
-                email_log_repo.log_email_result(self.request.id, campaign_id, nama, email, role, 'success')
-            else:
-                record_fail(
-                    row, nama, email, role,
-                    f"Gmail API mengembalikan error saat mengirim ke '{email}'. "
-                    f"Periksa apakah alamat email valid dan kuota Gmail belum habis.",
-                )
+            sent_attempted = True
+            gmail_adapter.send_email(gmail_service, message)
 
-            # Hapus file temp setelah dikirim
+            success_count += 1
+            success_row = row.copy()
+            success_row['_status'] = 'success'
+            successful_rows.append(success_row)
+            logs.append(f"✅ SUKSES: Email terkirim ke {nama} ({email})")
+            email_log_repo.log_email_result(self.request.id, campaign_id, nama, email, role, 'success')
+            update_progress()
+
+        except google_drive.AmbiguousFileMatch as e:
+            record_fail(row, nama, email, role, str(e))
+        except gmail_adapter.GmailSendError as e:
+            record_fail(row, nama, email, role, str(e))
+            if e.quota_exceeded:
+                quota_exhausted = True
+                logs.append("⛔ Kuota harian Gmail habis. Sisa penerima ditandai gagal agar bisa dikirim ulang.")
+                update_progress()
+        except Exception as e:
+            # Error satu penerima (Drive/download/dll) tidak boleh menghentikan seluruh blast
+            print(_traceback.format_exc(), flush=True)
+            record_fail(row, nama, email, role, f"Error saat memproses penerima: {str(e)}")
+        finally:
+            # Hapus file lampiran temp setelah diproses
             if save_path and os.path.exists(save_path):
                 try:
                     os.remove(save_path)
                 except Exception:
                     pass
 
-            update_progress()
+        if sent_attempted and not quota_exhausted:
             time.sleep(random.randint(2, 5))
-
-    except Exception as e:
-        tb = _traceback.format_exc()
-        logs.append(f"❌ FATAL ERROR: {str(e)}")
-        logs.append(f"Detail: {tb}")
-        update_progress()
-        return {
-            'status': 'Failed',
-            'logs': logs,
-            'failed_rows': failed_rows,
-            'successful_rows': successful_rows,
-        }
 
     return {
         'total': total,
@@ -285,3 +285,21 @@ def blast_email_task(
         'failed_rows': failed_rows,
         'successful_rows': successful_rows,
     }
+
+
+def _extract_fields(row):
+    """Ambil (nama, email, role) dari baris CSV dengan header yang fleksibel."""
+    nama = None
+    email = None
+    role = "Participant"
+    for k, v in row.items():
+        if not k:
+            continue
+        k_lower = str(k).lower().replace('﻿', '').strip()
+        if any(x in k_lower for x in ['nama', 'name']) and not nama:
+            nama = str(v).strip() if v else None
+        elif any(x in k_lower for x in ['email', 'e-mail']) and not email:
+            email = str(v).strip() if v else None
+        elif 'role' in k_lower and role == "Participant":
+            role = str(v).strip() if v else "Participant"
+    return nama, email, role

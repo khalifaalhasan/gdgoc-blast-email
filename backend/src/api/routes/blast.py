@@ -96,9 +96,7 @@ async def send_test_email(
             sender_email=config.SENDER_EMAIL,
         )
 
-        if gmail_adapter.send_email(gmail_service, message):
-            return {"message": "Test email sent successfully"}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to send test email")
+        gmail_adapter.send_email(gmail_service, message)
+        return {"message": "Test email sent successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

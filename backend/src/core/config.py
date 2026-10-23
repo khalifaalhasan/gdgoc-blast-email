@@ -27,12 +27,15 @@ class Settings(BaseSettings):
     ]
     
     # --- SYSTEM SETTINGS ---
+    DATABASE_URL: str = "postgresql://user:password@localhost:5432/blast_email"
     REDIS_URL: str = "redis://localhost:6379/0"
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = "http://localhost:5173"
     BACKEND_URL: str = "http://localhost:8000"  # Digunakan untuk OAuth redirect URI
 
     class Config:
         env_file = os.path.join(BASE_DIR, '.env')
         env_file_encoding = 'utf-8'
+        # Variabel lain di .env (misal POSTGRES_*, VITE_*) jangan bikin app crash
+        extra = 'ignore'
 
 config = Settings()
