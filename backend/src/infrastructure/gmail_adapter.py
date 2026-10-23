@@ -8,12 +8,31 @@ Sebelumnya ini ada di app/services/mailer_svc.py — nama dan lokasi keliru
 karena tidak ada business logic di sini, hanya wrap external API.
 """
 import os
+import time
 import base64
 import mimetypes
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+
+from googleapiclient.errors import HttpError
+
+# Status HTTP yang biasanya hilang sendiri kalau dicoba lagi
+RETRYABLE_STATUSES = {429, 500, 502, 503, 504}
+MAX_ATTEMPTS = 3
+BACKOFF_SECONDS = (2, 5)
+
+# Penanda error "kuota kirim harian habis" dari Gmail API — percuma di-retry
+QUOTA_MARKERS = ('dailylimitexceeded', 'daily user sending limit', 'sending limit exceeded')
+
+
+class GmailSendError(Exception):
+    """Gagal kirim email. quota_exceeded=True berarti kuota harian Gmail habis."""
+
+    def __init__(self, message, quota_exceeded=False):
+        super().__init__(message)
+        self.quota_exceeded = quota_exceeded
 
 
 def create_message(
@@ -54,14 +73,29 @@ def create_message(
     return {'raw': base64.urlsafe_b64encode(msg_root.as_bytes()).decode()}
 
 
-def send_email(gmail_service, message: dict) -> bool:
+def _is_quota_error(error: HttpError) -> bool:
+    return any(marker in str(error).lower() for marker in QUOTA_MARKERS)
+
+
+def send_email(gmail_service, message: dict, sleep=time.sleep) -> None:
     """
     Kirim email menggunakan Gmail API service object.
-    Return True jika berhasil, False jika gagal.
+
+    Error sementara (429/5xx, koneksi putus) dicoba ulang sampai MAX_ATTEMPTS kali.
+    Raise GmailSendError jika tetap gagal; quota_exceeded=True jika kuota harian habis.
     """
-    try:
-        gmail_service.users().messages().send(userId="me", body=message).execute()
-        return True
-    except Exception as e:
-        print(f"❌ Gmail API Error: {e}")
-        return False
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            gmail_service.users().messages().send(userId="me", body=message).execute()
+            return
+        except HttpError as e:
+            print(f"❌ Gmail API Error (percobaan {attempt}/{MAX_ATTEMPTS}): {e}")
+            if _is_quota_error(e):
+                raise GmailSendError(f"Kuota kirim harian Gmail habis: {e}", quota_exceeded=True)
+            if e.resp.status not in RETRYABLE_STATUSES or attempt == MAX_ATTEMPTS:
+                raise GmailSendError(f"Gmail API error {e.resp.status}: {e}")
+        except (OSError, TimeoutError) as e:
+            print(f"❌ Koneksi ke Gmail API gagal (percobaan {attempt}/{MAX_ATTEMPTS}): {e}")
+            if attempt == MAX_ATTEMPTS:
+                raise GmailSendError(f"Koneksi ke Gmail API gagal: {e}")
+        sleep(BACKOFF_SECONDS[min(attempt - 1, len(BACKOFF_SECONDS) - 1)])

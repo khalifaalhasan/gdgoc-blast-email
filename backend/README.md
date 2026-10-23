@@ -228,6 +228,18 @@ make help  # Lihat semua perintah yang tersedia
 
 ---
 
+## 🧪 Menjalankan Test
+
+Test tidak butuh Google API, Redis, maupun PostgreSQL (semuanya di-mock).
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+python -m pytest tests
+```
+
+---
+
 ## 📖 API Endpoints
 
 Dokumentasi interaktif Swagger tersedia di: **[http://localhost:8000/docs](http://localhost:8000/docs)**
