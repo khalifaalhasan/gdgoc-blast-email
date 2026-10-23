@@ -1,2 +1,4 @@
 -r requirements.txt
 pytest==9.1.1
+# Dipakai "make worker" untuk auto-restart Celery saat kode berubah
+watchdog==6.0.0

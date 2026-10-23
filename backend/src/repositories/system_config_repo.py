@@ -11,12 +11,12 @@ import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from src.db.models import SystemConfig
-import os
+from src.core.config import config
 
 
 def _make_sync_engine():
     """Buat sync engine dari DATABASE_URL untuk konteks yang butuh sync (worker, auth)."""
-    db_url = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/blast_email")
+    db_url = config.DATABASE_URL
     # Pastikan pakai driver sync (psycopg2), bukan asyncpg
     db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
     if "postgresql://" in db_url and "+psycopg2" not in db_url and "+asyncpg" not in db_url:

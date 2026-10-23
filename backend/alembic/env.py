@@ -30,7 +30,8 @@ from src.db.models import *
 target_metadata = Base.metadata
 
 # Override sqlalchemy.url in config if DATABASE_URL is set
-db_url = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/blast_email")
+from src.core.config import config as app_config
+db_url = app_config.DATABASE_URL
 if db_url:
     # Ensure it uses synchronous postgresql connection for alembic
     if db_url.startswith("postgresql+asyncpg://"):

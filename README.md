@@ -1,173 +1,82 @@
 # 📧 GDGoC Certificate Blast Mailer
 
-Tools otomatisasi berbasis **Python** untuk mengirimkan **E-Sertifikat
-massal** kepada peserta/panitia acara **GDG on Campus Universitas
-Sriwijaya**.
-
-Script ini telah di-refactor menggunakan prinsip **Clean Architecture**
-untuk memisahkan konfigurasi, logika email, dan template.
+Aplikasi web untuk mengirim **e-sertifikat dan surat massal** lewat Gmail kepada peserta/panitia acara **GDG on Campus Universitas Sriwijaya**.
 
 ------------------------------------------------------------------------
 
 ## 🚀 Fitur Utama
 
-### ✅ Smart PDF Matching
-
-Otomatis mencocokkan file PDF di folder `assets/certificates/`
-berdasarkan nama peserta di CSV.\
-Tidak perlu input link manual.
-
-### ✅ Local Attachment
-
-Mengirim file PDF sebagai lampiran fisik (bukan link Drive), memastikan
-penerima bisa langsung mengunduh file tanpa masalah izin akses.
-
-### ✅ Embedded Images (CID)
-
-Header dan Logo dikirim sebagai inline image agar tampilan email rapi
-dan profesional di semua klien email.
-
-### ✅ Anti-Spam Mechanism
-
-Menggunakan random delay antar pengiriman untuk menghindari rate limit
-atau blokir dari Gmail.
-
-### ✅ Modular & Configurable
-
-Pengaturan folder, subject, dan sender terpusat di `src/config.py`.
+- **Dashboard campaign** — buat campaign, upload & edit CSV penerima langsung di browser, atur template email (`{{nama}}`, `{{role}}`) dengan preview.
+- **PDF dari Google Drive** — setiap role dipetakan ke satu folder Drive; PDF dicocokkan otomatis dengan nama penerima. Jika ada lebih dari satu file yang cocok, penerima ditandai gagal (tidak asal pilih), dan sertifikat tanpa PDF tidak dikirim.
+- **Pengiriman di background** — Celery + Redis, progress realtime, jeda acak antar email untuk menghindari rate limit Gmail.
+- **Riwayat & kirim ulang** — setiap pengiriman dicatat; penerima yang gagal bisa dikirim ulang dengan tombol **Resend yang Gagal**.
+- **Login Google OAuth** — akun pengirim (misal `dscunsri@gmail.com`) login sekali, token disimpan di database.
 
 ------------------------------------------------------------------------
 
 ## 📂 Struktur Project
 
-    ├── 📁 assets
-    │   ├── 📁 certificates      # Taruh semua file PDF sertifikat di sini
-    │   │   └── 📕 Sertifikat Budi Santoso.pdf
-    │   ├── 🖼️ header.png        # Gambar Header Email (600px width recommended)
-    │   └── 🖼️ logo.png          # Logo Footer/Signature
-    ├── 📁 data
-    │   └── 📄 recipients.csv    # Database penerima (Format: Nama, Email, Role)
-    ├── 📁 src
-    │   ├── 🐍 config.py         # Konfigurasi path & variabel global
-    │   ├── 🐍 mailer.py         # Logic autentikasi & pengiriman Gmail API
-    │   └── 🐍 template.py       # Render HTML body email
-    ├── ⚙️ .gitignore
-    ├── 📝 README.md
-    └── 🐍 main.py               # Entry point (Jalankan file ini)
+    ├── backend/    # FastAPI + Celery + PostgreSQL (lihat backend/README.md)
+    ├── frontend/   # React + Vite + Tailwind
+    ├── docker-compose.yml        # PostgreSQL & Redis untuk development
+    ├── docker-compose.prod.yml   # Stack lengkap untuk server
+    └── Makefile                  # Shortcut perintah development
 
 ------------------------------------------------------------------------
 
 ## 🛠️ Prasyarat
 
--   Python 3.8+ terinstall
--   Google Cloud Credentials: `credentials.json` (OAuth Client ID -
-    Desktop App)
--   Data Sertifikat: Pastikan nama file PDF mengandung nama peserta
-    (Case-insensitive)
-
-Contoh:\
-Peserta **"Budi Santoso"** → File **"Sertifikat Budi Santoso.pdf"**
-(Akan terdeteksi)
+- Python 3.10+, Node.js 20+, Docker
+- `backend/credentials.json` — OAuth Client ID dari Google Cloud Console (format: `backend/credentials-example.json`). File ini rahasia, jangan di-commit.
 
 ------------------------------------------------------------------------
 
-## 📦 Instalasi
+## ⚡ Menjalankan di Local
 
-### 1️⃣ Clone Repository & Masuk ke Direktori
-
-``` bash
-git clone [REPO_URL]
-cd gdgoc-boilerplate-blast-email
+```bash
+make install                         # venv backend + npm ci frontend
+cp backend/.env.example backend/.env # sesuaikan bila perlu
+make infra-up                        # PostgreSQL & Redis (Docker)
+cd backend && venv/bin/alembic upgrade head   # Windows: venv\Scripts\alembic
 ```
 
-### 2️⃣ Buat Virtual Environment (Recommended)
+Lalu di tiga terminal terpisah:
 
-``` bash
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Mac/Linux
-source venv/bin/activate
+```bash
+make backend    # http://localhost:8000 (Swagger: /docs)
+make worker
+make frontend   # http://localhost:5173
 ```
 
-### 3️⃣ Install Dependencies
+Buka http://localhost:5173, login dengan akun Google pengirim, lalu buat campaign.
 
-``` bash
-pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
-```
+> Port 5432 sudah dipakai aplikasi lain? Jalankan `POSTGRES_PORT=5433 make infra-up` dan ubah `DATABASE_URL` di `backend/.env` ke port 5433.
 
-### 4️⃣ Setup Auth
-
-Letakkan file `credentials.json` di root folder project.
+Detail arsitektur backend, API, dan cara kerja pencocokan PDF ada di [backend/README.md](backend/README.md).
 
 ------------------------------------------------------------------------
 
-## ⚙️ Persiapan Data (`data/recipients.csv`)
+## ⚙️ Format CSV
 
-Pastikan file CSV memiliki header berikut (Case-sensitive sesuai script
-`main.py`):
-
-    Nama,Email,Role
-
-Contoh:
+Header minimal: kolom nama, email, dan (opsional) role. Nama kolom fleksibel (`Nama`/`Name`, `Email`/`E-mail`, `Role`).
 
     Nama,Email,Role
     Budi Santoso,budi@gmail.com,Participant
     Siti Aminah,siti@yahoo.com,Committee
 
-📌 Catatan:\
-Kolom **Role** digunakan untuk menyesuaikan isi body email\
-(Misal: *"Thank you for joining as a Participant"*).
-
-------------------------------------------------------------------------
-
-## 🚀 Cara Menjalankan
-
-1.  Pastikan semua aset (PDF & Gambar) sudah lengkap di folder `assets/`
-2.  Jalankan perintah:
-
-``` bash
-python main.py
-```
-
-3.  Login:\
-    Saat pertama kali dijalankan, browser akan terbuka untuk login akun
-    Gmail pengirim.
-
-4.  Verifikasi:\
-    Script akan mencetak log proses di terminal.
-
-```{=html}
-<!-- -->
-```
-    ✅  → Email terkirim
-    ❌  → File PDF tidak ditemukan atau email invalid
+Nama file PDF di Drive sebaiknya sama dengan kolom nama, misal `Budi Santoso.pdf`.
 
 ------------------------------------------------------------------------
 
 ## ⚠️ Troubleshooting
 
-### 🔐 Token Expired
-
-Jika terjadi error autentikasi, hapus file `token.json` (jika ada), lalu
-jalankan ulang script untuk login kembali.
-
-### 📄 File Not Found
-
-Pastikan nama di CSV tidak mengandung typo dibandingkan nama file PDF.\
-Script menggunakan pencarian substring (misal: "Budi" di CSV akan cocok
-dengan "Sertifikat Budi.pdf").
-
-### 📊 Quota Exceeded
-
-Gmail API membatasi pengiriman sekitar ±500 email/hari untuk akun gratis
-(non-Workspace).
+- **Token Google expired / dicabut** — login ulang dari halaman login aplikasi.
+- **Sertifikat tidak ditemukan / ambigu** — cek pesan di tabel riwayat campaign; rapikan nama file di Drive lalu klik **Resend yang Gagal**.
+- **Kuota Gmail habis** — akun Gmail gratis dibatasi ±500 email/hari. Sisa penerima otomatis ditandai gagal; kirim ulang keesokan harinya.
 
 ------------------------------------------------------------------------
 
 ## 👨‍💻 Maintainer
 
 **Backend Division**\
-GDG on Campus Universitas Sriwijayaa
+GDG on Campus Universitas Sriwijaya
