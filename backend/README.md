@@ -45,6 +45,12 @@ Worker mencari file di folder Drive milik role penerima (atau folder `default` /
 
 Jika lebih dari satu file cocok, penerima ditandai **gagal** (bukan asal pilih). Campaign sertifikat tanpa PDF **tidak dikirim**.
 
+Jika nama file berbeda dari nama penerima (ejaan beda, atau dua penerima bernama sama), isi kolom opsional **`Sertifikat`** di CSV dengan nama file-nya (tanpa `.pdf`). Kolom ini hanya dipakai untuk mencari PDF; sapaan di email tetap memakai kolom nama.
+
+### Placeholder di subject & isi email
+
+`{{nama}}` dan `{{role}}` selalu tersedia. Kolom CSV lain bisa dipakai dengan nama kolomnya, misal kolom `Division` → `{{division}}`, `Award Type` → `{{award_type}}` (huruf besar/kecil, spasi, dan tanda baca diabaikan). Jika placeholder tidak ada di CSV atau nilainya kosong, penerima tersebut ditandai **gagal** dan email tidak dikirim.
+
 ---
 
 ## ⚙️ Prasyarat (Prerequisites)
@@ -189,7 +195,7 @@ Dokumentasi interaktif Swagger tersedia di: **[http://localhost:8000/docs](http:
 ## 🛠 Panduan untuk Maintainer
 
 - **Menambah variabel dinamis di email?**
-  Tambahkan `.replace('{{variabel_baru}}', nilai)` di `src/worker/tasks.py` bagian templating.
+  Cukup tambahkan kolom baru di CSV lalu pakai `{{nama_kolom}}` di template (lihat `render_template()` di `src/worker/tasks.py`).
 
 - **Ganti domain CORS?**
   Ubah `FRONTEND_URL` di `.env` production.

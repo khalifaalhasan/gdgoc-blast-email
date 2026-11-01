@@ -22,6 +22,7 @@ def env(monkeypatch, tmp_path):
         'send_errors': {},  # email -> exception
         'download_errors': set(),
         'logs': [],
+        'messages': [],     # (email, subject, body)
     }
 
     monkeypatch.setattr(tasks.google_auth, 'get_gmail_service', lambda: object())
@@ -46,10 +47,16 @@ def env(monkeypatch, tmp_path):
         if to in state['send_errors']:
             raise state['send_errors'][to]
         state['sent'].append((to, message['attachment']))
+        state['messages'].append((to, message['subject'], message['body']))
 
     def fake_create_message(to_email, subject, html_body, pdf_path=None, **kwargs):
         import os
-        return {'to': to_email, 'attachment': os.path.basename(pdf_path) if pdf_path else None}
+        return {
+            'to': to_email,
+            'subject': subject,
+            'body': html_body,
+            'attachment': os.path.basename(pdf_path) if pdf_path else None,
+        }
 
     def fake_log(task_id, campaign_id, nama, email, role, status, reason=None):
         state['logs'].append((email, status, reason))
@@ -62,12 +69,13 @@ def env(monkeypatch, tmp_path):
     return state
 
 
-def run(rows, drive_links=None, campaign_type='sertifikat'):
+def run(rows, drive_links=None, campaign_type='sertifikat',
+        subject='Sertifikat {{nama}}', body='Halo {{nama}}'):
     links = drive_links if drive_links is not None else {
         role: f'https://drive.google.com/drive/folders/{fid}' for role, fid in FOLDERS.items()
     }
     result = blast_email_task.apply(
-        args=(rows, json.dumps(links), 'Sertifikat {{nama}}', 'Halo {{nama}}', campaign_type),
+        args=(rows, json.dumps(links), subject, body, campaign_type),
     ).get()
     return result
 
@@ -148,3 +156,63 @@ def test_quota_exhausted_marks_remaining_rows_failed(env):
     assert result['success'] == 1 and result['fail'] == 2
     # Semua yang gagal tercatat di DB supaya bisa di-resend
     assert [s for _, s, _ in env['logs']].count('failed') == 2
+
+
+def test_any_csv_column_can_be_used_as_placeholder(env):
+    env['drive']['folder-participant'] = ['Budi Santoso.pdf']
+    rows = [{'Nama': 'Budi Santoso', 'Email': 'budi@x.com', 'Role': 'Participant', 'Division': 'UI/UX'}]
+    run(rows, subject='{{nama}} - {{ Division }}', body='{{role}} in the {{division}} Division')
+    assert env['messages'] == [('budi@x.com', 'Budi Santoso - UI/UX', 'Participant in the UI/UX Division')]
+
+
+def test_placeholder_column_name_with_spaces_and_symbols(env):
+    env['drive']['folder-participant'] = ['Budi Santoso.pdf']
+    rows = [{'Nama': 'Budi Santoso', 'Email': 'budi@x.com', 'Role': 'Participant', 'Award Type': 'Overall'}]
+    run(rows, body='{{award_type}} / {{Award Type}}')
+    assert env['messages'][0][2] == 'Overall / Overall'
+
+
+def test_unknown_placeholder_fails_row_without_sending(env):
+    env['drive']['folder-participant'] = ['Budi Santoso.pdf']
+    result = run([row('Budi Santoso', 'budi@x.com')], body='Divisi {{divison}}')
+    assert env['sent'] == []
+    assert '{{divison}}' in reasons(result)['budi@x.com']
+
+
+def test_empty_placeholder_value_fails_row(env):
+    env['drive']['folder-participant'] = ['Budi Santoso.pdf']
+    rows = [{'Nama': 'Budi Santoso', 'Email': 'budi@x.com', 'Role': 'Participant', 'Division': ''}]
+    result = run(rows, body='{{division}}')
+    assert env['sent'] == []
+    assert 'kosong' in reasons(result)['budi@x.com']
+
+
+def test_placeholder_values_are_html_escaped_in_body_only(env):
+    env['drive']['folder-participant'] = ['Budi Santoso.pdf']
+    rows = [{'Nama': 'Budi Santoso', 'Email': 'budi@x.com', 'Role': 'Participant', 'Division': 'R&D <Lab>'}]
+    run(rows, subject='{{division}}', body='{{division}}')
+    assert env['messages'][0][1:] == ('R&D <Lab>', 'R&amp;D &lt;Lab&gt;')
+
+
+def test_sertifikat_column_overrides_file_lookup(env):
+    # Ejaan nama di data berbeda dengan nama file di Drive
+    env['drive']['folder-participant'] = ['Dimas Pratamaa.pdf']
+    rows = [{'Nama': 'Dimas Pratama', 'Email': 'dimas@x.com', 'Role': 'Participant',
+             'Sertifikat': 'Dimas Pratamaa'}]
+    run(rows, body='Hi {{nama}}')
+    assert env['sent'] == [('dimas@x.com', 'Dimas Pratamaa.pdf')]
+    assert env['messages'][0][2] == 'Hi Dimas Pratama'
+
+
+def test_sertifikat_column_separates_namesakes(env):
+    env['drive']['folder-participant'] = ['Siti Rahma.pdf', 'Siti Rahma UIUX.pdf']
+    rows = [
+        {'Nama': 'Siti Rahma', 'Email': 'pm@x.com', 'Role': 'Participant', 'Sertifikat': ''},
+        {'Nama': 'Siti Rahma', 'Email': 'uiux@x.com', 'Role': 'Participant',
+         'Sertifikat': 'Siti Rahma UIUX'},
+    ]
+    run(rows)
+    assert sorted(env['sent']) == [
+        ('pm@x.com', 'Siti Rahma.pdf'),
+        ('uiux@x.com', 'Siti Rahma UIUX.pdf'),
+    ]

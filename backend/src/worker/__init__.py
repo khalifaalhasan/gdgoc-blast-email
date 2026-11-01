@@ -12,6 +12,8 @@ celery_app = Celery(
     'blast_tasks',
     broker=config.REDIS_URL,
     backend=config.REDIS_URL,
+    # Wajib: tanpa ini worker start dengan daftar task kosong dan membuang job blast
+    include=['src.worker.tasks'],
 )
 
 celery_app.conf.update(

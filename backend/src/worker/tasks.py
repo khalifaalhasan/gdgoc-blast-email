@@ -17,6 +17,8 @@ Yang TIDAK ada di sini:
 - Celery app config (ada di app/worker/__init__.py)
 """
 import os
+import re
+import html
 import json
 import time
 import random
@@ -137,7 +139,8 @@ def blast_email_task(
     # Penerima dengan 2 kata pertama nama yang sama (misal "Muhammad Rizki A" & "Muhammad Rizki B")
     # wajib cocok NAMA LENGKAP di Drive, supaya sertifikat tidak tertukar.
     name_key_counts = Counter(
-        google_drive.name_key(nama) for nama, _, _ in map(_extract_fields, rows) if nama
+        google_drive.name_key(_attachment_name(row, nama))
+        for row, (nama, _, _) in zip(rows, map(_extract_fields, rows)) if nama
     )
 
     quota_exhausted = False
@@ -163,6 +166,13 @@ def blast_email_task(
         save_path = None
         sent_attempted = False
         try:
+            # Render template dulu: placeholder yang salah langsung gagal tanpa menyentuh Drive
+            actual_subject = render_template(subject_template, row, nama, role)
+            actual_body = render_template(body_template, row, nama, role, escape_html=True)
+
+            # Nama yang dicari di Drive: kolom "Sertifikat" jika diisi, selain itu kolom nama
+            file_name = _attachment_name(row, nama)
+
             # --- Tentukan folder Drive berdasarkan role ---
             # Fallback ke 'default' atau ke satu-satunya folder. Jika ada beberapa folder dan
             # role tidak cocok, JANGAN tebak folder lain (bisa mengambil sertifikat role lain).
@@ -171,19 +181,19 @@ def blast_email_task(
             if not current_folder_id and len(folder_ids) == 1:
                 current_folder_id = next(iter(folder_ids.values()))
 
-            require_full_name = name_key_counts[google_drive.name_key(nama)] > 1
+            require_full_name = name_key_counts[google_drive.name_key(file_name)] > 1
 
             # --- Cari / download file lampiran ---
             if campaign_type == 'surat':
                 if surat_files_map:
-                    nama_key = nama.strip().lower()
+                    nama_key = file_name.strip().lower()
                     save_path = surat_files_map.get(nama_key)
                     if not save_path or not os.path.exists(save_path):
                         save_path = None
                         record_fail(
                             row, nama, email, role,
-                            f"File surat tidak ditemukan untuk '{nama}'. "
-                            f"Pastikan ada file bernama '{nama}.pdf' di antara file yang diupload. "
+                            f"File surat tidak ditemukan untuk '{file_name}'. "
+                            f"Pastikan ada file bernama '{file_name}.pdf' di antara file yang diupload. "
                             f"Nama file harus sama persis (case-insensitive) dengan kolom nama di CSV.",
                         )
                         continue
@@ -191,13 +201,13 @@ def blast_email_task(
                     logs.append(f"Mencari surat untuk '{nama}' di Google Drive...")
                     update_progress()
                     file_match = google_drive.find_file_in_drive(
-                        drive_service, current_folder_id, nama, require_full_name=require_full_name
+                        drive_service, current_folder_id, file_name, require_full_name=require_full_name
                     )
                     if not file_match:
                         record_fail(
                             row, nama, email, role,
-                            f"File PDF tidak ditemukan di folder Drive untuk '{nama}'. "
-                            f"Pastikan ada file bernama '{nama}.pdf' di folder Drive tersebut.",
+                            f"File PDF tidak ditemukan di folder Drive untuk '{file_name}'. "
+                            f"Pastikan ada file bernama '{file_name}.pdf' di folder Drive tersebut.",
                         )
                         continue
                     save_path = os.path.join(temp_dir, file_match['name'])
@@ -214,7 +224,7 @@ def blast_email_task(
                 logs.append(f"Mencari sertifikat untuk '{nama}' ({role})...")
                 update_progress()
                 file_match = google_drive.find_file_in_drive(
-                    drive_service, current_folder_id, nama, require_full_name=require_full_name
+                    drive_service, current_folder_id, file_name, require_full_name=require_full_name
                 )
                 if not file_match:
                     hint = (
@@ -223,17 +233,14 @@ def blast_email_task(
                     )
                     record_fail(
                         row, nama, email, role,
-                        f"Sertifikat tidak ditemukan di Google Drive untuk '{nama}' (role: {role}). "
-                        f"Pastikan nama file PDF sama persis dengan kolom nama di CSV.{hint}",
+                        f"Sertifikat tidak ditemukan di Google Drive untuk '{file_name}' (role: {role}). "
+                        f"Pastikan nama file PDF sama persis dengan kolom nama (atau kolom Sertifikat) di CSV.{hint}",
                     )
                     continue
                 save_path = os.path.join(temp_dir, file_match['name'])
                 google_drive.download_file(drive_service, file_match['id'], save_path)
 
             # --- Kirim email ---
-            actual_subject = subject_template.replace('{{nama}}', nama).replace('{{role}}', role)
-            actual_body = body_template.replace('{{nama}}', nama).replace('{{role}}', role)
-
             message = gmail_adapter.create_message(
                 to_email=email,
                 subject=actual_subject,
@@ -254,7 +261,7 @@ def blast_email_task(
             email_log_repo.log_email_result(self.request.id, campaign_id, nama, email, role, 'success')
             update_progress()
 
-        except google_drive.AmbiguousFileMatch as e:
+        except (google_drive.AmbiguousFileMatch, TemplateError) as e:
             record_fail(row, nama, email, role, str(e))
         except gmail_adapter.GmailSendError as e:
             record_fail(row, nama, email, role, str(e))
@@ -303,3 +310,51 @@ def _extract_fields(row):
         elif 'role' in k_lower and role == "Participant":
             role = str(v).strip() if v else "Participant"
     return nama, email, role
+
+
+# Kolom CSV opsional untuk nama file PDF di Drive, jika berbeda dari nama penerima
+# (misal ejaan file beda, atau dua penerima bernama sama).
+ATTACHMENT_COLUMN = 'sertifikat'
+
+PLACEHOLDER_RE = re.compile(r'\{\{\s*([^{}]+?)\s*\}\}')
+
+
+class TemplateError(ValueError):
+    """Placeholder di subject/body tidak bisa diisi dari data baris CSV."""
+
+
+def _normalize_key(key):
+    """'Award Type' / 'award_type' / 'DIVISION / CATEGORY' → 'award_type' / 'division_category'."""
+    return re.sub(r'[^a-z0-9]+', '_', str(key).lower().replace('\ufeff', '')).strip('_')
+
+
+def _attachment_name(row, nama):
+    for k, v in row.items():
+        if k and _normalize_key(k) == ATTACHMENT_COLUMN and v and str(v).strip():
+            return str(v).strip()
+    return nama
+
+
+def render_template(template, row, nama, role, escape_html=False):
+    """
+    Isi placeholder {{...}} dengan data baris CSV.
+
+    - {{nama}} dan {{role}} selalu tersedia (role default "Participant").
+    - Kolom CSV lain bisa dipakai dengan nama kolomnya: kolom "Division" → {{division}},
+      "Award Type" → {{award_type}} (huruf besar/kecil, spasi & tanda baca diabaikan).
+    Raise TemplateError jika kolom tidak ada atau kosong, supaya email tidak terkirim
+    dengan teks "{{...}}" mentah atau kalimat yang bolong.
+    """
+    values = {_normalize_key(k): (str(v).strip() if v is not None else '') for k, v in row.items() if k}
+    values['nama'] = nama
+    values['role'] = role
+
+    def replace(match):
+        key = _normalize_key(match.group(1))
+        if key not in values:
+            raise TemplateError(f"Placeholder {match.group(0)} tidak ada di kolom CSV.")
+        if not values[key]:
+            raise TemplateError(f"Kolom untuk placeholder {match.group(0)} kosong di baris ini.")
+        return html.escape(values[key]) if escape_html else values[key]
+
+    return PLACEHOLDER_RE.sub(replace, template)
