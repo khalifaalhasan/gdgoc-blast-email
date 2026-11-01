@@ -6,7 +6,7 @@ Aplikasi web untuk mengirim **e-sertifikat dan surat massal** lewat Gmail kepada
 
 ## 🚀 Fitur Utama
 
-- **Dashboard campaign** — buat campaign, upload & edit CSV penerima langsung di browser, atur template email (`{{nama}}`, `{{role}}`) dengan preview.
+- **Dashboard campaign** — buat campaign, upload & edit CSV penerima langsung di browser, atur template email (`{{nama}}`, `{{role}}`, atau kolom CSV lain seperti `{{division}}`) dengan preview.
 - **PDF dari Google Drive** — setiap role dipetakan ke satu folder Drive; PDF dicocokkan otomatis dengan nama penerima. Jika ada lebih dari satu file yang cocok, penerima ditandai gagal (tidak asal pilih), dan sertifikat tanpa PDF tidak dikirim.
 - **Pengiriman di background** — Celery + Redis, progress realtime, jeda acak antar email untuk menghindari rate limit Gmail.
 - **Riwayat & kirim ulang** — setiap pengiriman dicatat; penerima yang gagal bisa dikirim ulang dengan tombol **Resend yang Gagal**.
@@ -184,6 +184,12 @@ Header minimal: kolom nama, email, dan (opsional) role. Nama kolom fleksibel (`N
     Siti Aminah,siti@yahoo.com,Committee
 
 Nama file PDF di Drive sebaiknya sama dengan kolom nama, misal `Budi Santoso.pdf`.
+
+Kolom tambahan bisa dipakai di template email sebagai placeholder, misal kolom `Division` → `{{division}}`. Jika nama file PDF berbeda dari nama penerima, isi kolom opsional `Sertifikat` dengan nama file-nya:
+
+    Nama,Email,Role,Division,Sertifikat
+    Budi Santoso,budi.pm@gmail.com,Member,Project Management,
+    Budi Santoso,budi.ui@gmail.com,Member,UI/UX,Budi Santoso UIUX
 
 ------------------------------------------------------------------------
 
