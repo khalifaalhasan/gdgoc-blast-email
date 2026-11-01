@@ -133,7 +133,7 @@ export function CampaignForm({
       "https://www.linkedin.com/company/gdsc-unsri/";
     const emailAssetBaseUrl =
       import.meta.env.VITE_EMAIL_ASSET_BASE_URL ||
-      "https://gdgoc-boilerplate-blast-email.vercel.app/assets";
+      "https://raw.githubusercontent.com/khalifaalhasan/gdgoc-blast-email/main/frontend/public/assets";
 
     const enhancedBody = `
 <div style="font-family: Arial, sans-serif; background-color: #f4f4f5; padding: 40px 20px;">
@@ -183,7 +183,7 @@ export function CampaignForm({
     try {
       const emailAssetBaseUrl =
         import.meta.env.VITE_EMAIL_ASSET_BASE_URL ||
-        "https://gdgoc-boilerplate-blast-email.vercel.app/assets";
+        "https://raw.githubusercontent.com/khalifaalhasan/gdgoc-blast-email/main/frontend/public/assets";
       const linkInstagram =
         import.meta.env.VITE_LINK_INSTAGRAM ||
         "https://www.instagram.com/gdgunsri/";
@@ -418,7 +418,7 @@ export function CampaignForm({
                     }}
                   >
                     <img
-                      src={`${import.meta.env.VITE_EMAIL_ASSET_BASE_URL || "https://gdgoc-boilerplate-blast-email.vercel.app/assets"}/${themeColor}/header.png`}
+                      src={`${import.meta.env.VITE_EMAIL_ASSET_BASE_URL || "https://raw.githubusercontent.com/khalifaalhasan/gdgoc-blast-email/main/frontend/public/assets"}/${themeColor}/header.png`}
                       alt={`Header ${themeColor}`}
                       className="w-full h-auto object-contain"
                       onError={(e) => {
@@ -434,7 +434,7 @@ export function CampaignForm({
                     </p>
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-2">
                       <img
-                        src={`${import.meta.env.VITE_EMAIL_ASSET_BASE_URL || "https://gdgoc-boilerplate-blast-email.vercel.app/assets"}/${themeColor}/icon.png`}
+                        src={`${import.meta.env.VITE_EMAIL_ASSET_BASE_URL || "https://raw.githubusercontent.com/khalifaalhasan/gdgoc-blast-email/main/frontend/public/assets"}/${themeColor}/icon.png`}
                         alt="GDGoC Logo"
                         className="h-10 object-contain"
                         onError={(e) => {
