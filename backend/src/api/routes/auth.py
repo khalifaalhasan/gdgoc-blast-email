@@ -1,10 +1,13 @@
+import logging
+
 from fastapi import APIRouter
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
 from src.core.config import config
 from src.infrastructure.google_auth import check_token_status, save_credentials
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Redirect URI yang terdaftar di Google Cloud Console
 # Harus sama persis dengan yang ada di credentials.json → redirect_uris
@@ -41,7 +44,16 @@ async def auth_login():
     Mulai alur OAuth Google. Redirect user ke halaman consent Google.
     Buka endpoint ini di browser untuk (re)autentikasi.
     """
-    flow = _build_flow()
+    try:
+        flow = _build_flow()
+    except (OSError, ValueError):
+        logger.error(
+            "Google OAuth credentials tidak tersedia atau tidak valid. "
+            "Pasang JSON OAuth Client dari Google Cloud di CREDENTIALS_PATH."
+        )
+        return RedirectResponse(
+            url=f"{config.FRONTEND_URL}/login?error=oauth_not_configured"
+        )
     auth_url, state = flow.authorization_url(
         access_type="offline",   # Minta refresh_token agar bisa auto-refresh
         include_granted_scopes="true",

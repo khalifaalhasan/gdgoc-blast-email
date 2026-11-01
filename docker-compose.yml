@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   redis:
-    image: redis:alpine
+    image: redis:7.4.12-alpine3.21
     container_name: blast_email_redis
     ports:
       - "6379:6379"
@@ -10,7 +10,7 @@ services:
 
   # Redis GUI Console (Bisa diakses dari browser)
   redisinsight:
-    image: redis/redisinsight:latest
+    image: redis/redisinsight:3.8
     container_name: blast_email_redis_console
     ports:
       - "8001:5540"
@@ -19,6 +19,7 @@ services:
       - redis
 
   db:
+    # Volume yang ada memakai PostgreSQL 15; upgrade major perlu migrasi data.
     image: postgres:15-alpine
     container_name: blast_email_db
     ports:

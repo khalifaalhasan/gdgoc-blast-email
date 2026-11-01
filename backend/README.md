@@ -50,21 +50,22 @@ Jika lebih dari satu file cocok, penerima ditandai **gagal** (bukan asal pilih).
 ## ⚙️ Prasyarat (Prerequisites)
 
 1. **Python 3.10+**
-2. **Docker** (untuk PostgreSQL & Redis)
+2. **Docker Compose v2** atau **Podman + podman-compose** (untuk PostgreSQL & Redis)
 3. **Google API Credentials**: `credentials.json` (OAuth 2.0 Client ID dari Google Cloud Console, format lihat `credentials-example.json`) diletakkan di `backend/credentials.json`. Untuk client tipe *Web application*, daftarkan redirect URI `http://localhost:8000/api/auth/google/callback`. Token hasil login disimpan di database (tabel `system_configs`), bukan di file.
 
 ---
 
 ## 🚀 Cara Menjalankan Aplikasi
 
-> Cara cepat dari root proyek: `make install`, `make infra-up`, lalu `make backend`, `make worker`, `make frontend` di terminal terpisah.
+> Urutan setup dari root proyek, pengecekan kesiapan database, dan alternatif Podman tersedia di [README utama](../README.md#-menjalankan-di-local).
 
 ### 1. Instalasi Dependencies
 ```bash
 cd backend
 python -m venv venv
 # Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate
-pip install -r requirements-dev.txt
+venv/bin/python -m pip install -r requirements-dev.txt
+# Windows: venv\Scripts\python -m pip install -r requirements-dev.txt
 ```
 
 ### 2. Setup Environment Variables
@@ -73,22 +74,35 @@ cp .env.example .env
 # Sesuaikan DATABASE_URL, REDIS_URL, FRONTEND_URL, SENDER_EMAIL
 ```
 
+Salin hanya saat setup pertama agar `.env` yang sudah ada tidak tertimpa. Siapkan `backend/credentials.json` mengikuti [panduan Google OAuth di README utama](../README.md#kredensial-google-oauth), termasuk langkah **Add secret** jika secret lama hilang. File `.env` dan JSON contoh berisi placeholder belum cukup untuk login. Token hasil login disimpan otomatis di database, sehingga tidak perlu membuat `token.json`.
+
 ### 3. Jalankan Database & Redis
 ```bash
-# Dari root proyek
+# Kembali ke root proyek setelah langkah 2
+cd ..
 docker compose up -d redis db
+docker compose ps
+docker compose exec db pg_isready -U user -d blast_email
+docker compose exec redis redis-cli ping
 # Port 5432 sudah dipakai? POSTGRES_PORT=5433 docker compose up -d redis db
-# lalu ubah DATABASE_URL di .env ke port 5433
+# lalu ubah DATABASE_URL di backend/.env ke port 5433
 ```
+
+Tunggu `accepting connections` dan `PONG` sebelum lanjut. Untuk Podman, ganti `docker compose` dengan `podman-compose`. Panduan log, stop, volume data, dan kecocokan versi PostgreSQL ada di [README utama](../README.md#2-jalankan-docker-compose).
 
 ### 4. Jalankan Migrasi Database
 ```bash
-alembic upgrade head
+cd backend
+venv/bin/alembic upgrade head
+# Windows: venv\Scripts\alembic upgrade head
 ```
 
 ### 5. Jalankan Celery Worker (terminal terpisah)
 ```bash
-celery -A src.worker.celery_app worker --loglevel=info
+# Dari root proyek pada terminal baru
+make worker
+# Atau dari backend dengan venv aktif:
+# celery -A src.worker.celery_app worker --loglevel=info
 # Windows: tambahkan --pool=solo
 ```
 
@@ -96,7 +110,10 @@ celery -A src.worker.celery_app worker --loglevel=info
 
 ### 6. Jalankan FastAPI Server (terminal terpisah)
 ```bash
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+# Dari root proyek pada terminal baru
+make backend
+# Atau dari backend dengan venv aktif:
+# uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ---

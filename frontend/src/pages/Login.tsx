@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import { LogIn, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -36,6 +36,8 @@ export default function Login() {
             <p className="text-sm text-red-700 dark:text-red-400 font-medium">
               {error === "access_denied"
                 ? "Anda menolak akses ke Google Account. Akses dibutuhkan untuk mengirim email."
+                : error === "oauth_not_configured"
+                ? "Login Google belum dikonfigurasi. Hubungi pengelola aplikasi untuk menyiapkan akses Google."
                 : "Terjadi kesalahan saat otentikasi. Silakan coba lagi."}
             </p>
           </div>
